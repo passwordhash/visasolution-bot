@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// chat api test
-	//resp, err := api.GPT3DOT5TurboRequest(api.TestMsgReq, config.ChatApiKey)
+	//resp, err := api.GPT4oMiniRequest("", config.ChatApiKey)
 	//if err != nil {
 	//	log.Fatalln("chat gpt api error: ", err)
 	//}
