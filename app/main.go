@@ -3,31 +3,39 @@ package main
 import (
 	"fmt"
 	"github.com/tebeka/selenium"
-	"github.com/tebeka/selenium/chrome"
 	"log"
-	"os"
 	"time"
-	cfg "visasolution/config"
+	cfg "visasolution/app/config"
+	"visasolution/app/service"
 )
 
 //docker run --rm -p=4444:4444 selenium/standalone-chrome
 
-const maxTries = 10
 const parseURL = "https://russia.blsspainglobal.com/Global/account/login"
+const maxTries = 10
 
 func main() {
-	// load confgi
+	// load config
 	config, err := cfg.LoadConfig()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
+	// chat api test
+	//resp, err := api.GPT3DOT5TurboRequest(api.TestMsgReq, config.ChatApiKey)
+	//if err != nil {
+	//	log.Fatalln("chat gpt api error: ", err)
+	//}
+	//log.Println("chat api test msg: ", api.GetRespMsg(resp))
+	//return
+
 	// selenium connect
-	wd, err := connect()
+	seleniumService, err := service.NewSeleniumService(maxTries, parseURL)
 	if err != nil {
 		log.Print("web driver connection error: ", err)
 		return
 	}
+	wd := seleniumService.Wd()
 	defer wd.Quit()
 	log.Println("web driver connected")
 
@@ -35,8 +43,7 @@ func main() {
 		log.Println("maximizing window error: ", err)
 	}
 
-	getURL := parseURL
-	err = wd.Get(getURL)
+	err = wd.Get(parseURL)
 	if err != nil {
 		log.Println("get error: ", err)
 		return
@@ -76,11 +83,11 @@ func main() {
 		return
 	}
 
-	time.Sleep(time.Second * 10)
+	//time.Sleep(time.Second * 10)
 	log.Println(verifyBtn.Click())
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 5)
 
-	err = processCaptcha(wd)
+	err = seleniumService.ProcessCaptcha(wd)
 	if err != nil {
 		log.Println("error while proccessing captcha: ", err)
 		return
@@ -103,55 +110,4 @@ func main() {
 	}
 
 	fmt.Println("finish")
-}
-
-func processCaptcha(wd selenium.WebDriver) error {
-	var err error
-
-	//elem, err := wd.FindElement(selenium.ByCSSSelector, `#captcha-main-div > div`)
-	elem, err := wd.FindElement(selenium.ByXPATH, `//*[@id="popup_1"]/iframe`)
-	if err != nil {
-		return err
-	}
-	img, err := elem.Screenshot(false)
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Create("hello.png")
-	if err != nil {
-		return err
-	}
-	_, err = file.Write(img)
-
-	return err
-}
-
-func connect() (selenium.WebDriver, error) {
-	var wd selenium.WebDriver
-	var err error
-
-	caps := selenium.Capabilities{
-		"browserName": "chrome",
-	}
-
-	chrCaps := chrome.Capabilities{
-		W3C: true,
-	}
-	caps.AddChrome(chrCaps)
-
-	// адрес нашего драйвера
-	urlPrefix := selenium.DefaultURLPrefix
-	i := 0
-	for i < maxTries {
-		wd, err = selenium.NewRemote(caps, urlPrefix)
-		if err != nil {
-			log.Println(err)
-			i++
-			continue
-		}
-		break
-	}
-
-	return wd, err
 }
