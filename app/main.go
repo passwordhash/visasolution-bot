@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 	cfg "visasolution/app/config"
 	"visasolution/app/service"
 )
@@ -41,13 +42,22 @@ func main() {
 	defer services.Quit()
 	log.Println("web driver connected")
 
+	err = services.Parse(parseURL)
+	if err != nil {
+		log.Println("page parse error:", err)
+		return
+	}
+	log.Println("web page parsed")
+
 	if err = services.Selenium.MaximizeWindow(); err != nil {
 		log.Println("cannot maximize window: ", err)
 	}
 
+	time.Sleep(10 * time.Second)
+
 	err = services.ProcessCaptcha()
 	if err != nil {
-		log.Println("cannot process captcha: ", err)
+		log.Println("cannot process captcha:", err)
 	}
 
 	//err = wd.Get(parseURL)

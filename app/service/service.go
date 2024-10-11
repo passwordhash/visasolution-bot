@@ -6,6 +6,7 @@ import (
 )
 
 type Selenium interface {
+	Parse(url string) error
 	Wd() selenium.WebDriver
 	MaximizeWindow() error
 	ProcessCaptcha() error
