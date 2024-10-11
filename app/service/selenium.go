@@ -4,6 +4,7 @@ import (
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/chrome"
 	"log"
+	"time"
 	"visasolution/app/util"
 )
 
@@ -14,26 +15,17 @@ type SeleniumService struct {
 	parseUrl string
 }
 
-func NewSeleniumService(maxTries int, parseUrl string) (*SeleniumService, error) {
-	wd, err := seleniumConnect("", maxTries)
-	if err != nil {
-		return &SeleniumService{}, err
-	}
-
-	service := &SeleniumService{
-		wd:       wd,
+func NewSeleniumService(maxTries int) *SeleniumService {
+	return &SeleniumService{
 		maxTries: maxTries,
-		parseUrl: parseUrl,
 	}
-
-	return service, nil
 }
 
-func (s SeleniumService) Wd() selenium.WebDriver {
+func (s *SeleniumService) Wd() selenium.WebDriver {
 	return s.wd
 }
 
-func (s SeleniumService) ProcessCaptcha(wd selenium.WebDriver) error {
+func (s *SeleniumService) ProcessCaptcha(wd selenium.WebDriver) error {
 	var err error
 
 	//elem, err := wd.FindElement(selenium.ByCSSSelector, `#captcha-main-div > div`)
@@ -51,7 +43,7 @@ func (s SeleniumService) ProcessCaptcha(wd selenium.WebDriver) error {
 	return err
 }
 
-func seleniumConnect(url string, maxTries int) (selenium.WebDriver, error) {
+func (s *SeleniumService) Connect(url string) (selenium.WebDriver, error) {
 	var wd selenium.WebDriver
 	var err error
 
@@ -70,15 +62,22 @@ func seleniumConnect(url string, maxTries int) (selenium.WebDriver, error) {
 		urlPrefix = selenium.DefaultURLPrefix
 	}
 	i := 0
-	for i < maxTries {
+	for i < s.maxTries {
 		wd, err = selenium.NewRemote(caps, urlPrefix)
 		if err != nil {
 			log.Println(err)
 			i++
+			time.Sleep(time.Second * 1)
 			continue
 		}
 		break
 	}
 
+	s.wd = wd
+
 	return wd, err
+}
+
+func (s *SeleniumService) Quit() {
+	s.wd.Quit()
 }

@@ -1,18 +1,24 @@
-package api
+package service
 
 import (
 	"context"
 	"github.com/sashabaranov/go-openai"
 )
 
-const TestMsgReq = "Если работаешь, отправь 'Hello, Worlrd!'"
+type ChatService struct {
+	token string
+}
 
-func GetRespMsg(resp openai.ChatCompletionResponse) string {
+func NewChatService(token string) *ChatService {
+	return &ChatService{token: token}
+}
+
+func (s *ChatService) GetRespMsg(resp openai.ChatCompletionResponse) string {
 	return resp.Choices[0].Message.Content
 }
 
-func GPT3DOT5TurboRequest(content, token string) (openai.ChatCompletionResponse, error) {
-	client := openai.NewClient(token)
+func (s *ChatService) GPT3DOT5TurboRequest(content string) (openai.ChatCompletionResponse, error) {
+	client := openai.NewClient(s.token)
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
