@@ -33,16 +33,21 @@ func main() {
 		BlsPassword: config.BlsPassword,
 		ChatApiKey:  config.ChatApiKey,
 	})
-	wd, err := services.Connect("")
+	err = services.Connect("")
 	if err != nil {
-		log.Print("web driver connection error: ", err)
+		log.Println("web driver connection error: ", err)
 		return
 	}
 	defer services.Quit()
 	log.Println("web driver connected")
 
-	if err = wd.MaximizeWindow(""); err != nil {
-		log.Println("maximizing window error: ", err)
+	if err = services.Selenium.MaximizeWindow(); err != nil {
+		log.Println("cannot maximize window: ", err)
+	}
+
+	err = services.ProcessCaptcha()
+	if err != nil {
+		log.Println("cannot process captcha: ", err)
 	}
 
 	//err = wd.Get(parseURL)

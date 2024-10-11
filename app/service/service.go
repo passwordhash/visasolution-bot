@@ -7,8 +7,9 @@ import (
 
 type Selenium interface {
 	Wd() selenium.WebDriver
-	ProcessCaptcha(wd selenium.WebDriver) error
-	Connect(url string) (selenium.WebDriver, error)
+	MaximizeWindow() error
+	ProcessCaptcha() error
+	Connect(url string) error
 	Quit()
 }
 

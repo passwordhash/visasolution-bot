@@ -25,11 +25,15 @@ func (s *SeleniumService) Wd() selenium.WebDriver {
 	return s.wd
 }
 
-func (s *SeleniumService) ProcessCaptcha(wd selenium.WebDriver) error {
+func (s *SeleniumService) MaximizeWindow() error {
+	return s.wd.MaximizeWindow("")
+}
+
+func (s *SeleniumService) ProcessCaptcha() error {
 	var err error
 
 	//elem, err := wd.FindElement(selenium.ByCSSSelector, `#captcha-main-div > div`)
-	elem, err := wd.FindElement(selenium.ByXPATH, `//*[@id="popup_1"]/iframe`)
+	elem, err := s.wd.FindElement(selenium.ByXPATH, `//*[@id="popup_1"]/iframe`)
 	if err != nil {
 		return err
 	}
@@ -43,7 +47,7 @@ func (s *SeleniumService) ProcessCaptcha(wd selenium.WebDriver) error {
 	return err
 }
 
-func (s *SeleniumService) Connect(url string) (selenium.WebDriver, error) {
+func (s *SeleniumService) Connect(url string) error {
 	var wd selenium.WebDriver
 	var err error
 
@@ -75,7 +79,7 @@ func (s *SeleniumService) Connect(url string) (selenium.WebDriver, error) {
 
 	s.wd = wd
 
-	return wd, err
+	return err
 }
 
 func (s *SeleniumService) Quit() {
