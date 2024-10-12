@@ -37,6 +37,8 @@ func main() {
 		ImgurClientSecret: config.ImgurClientSecret,
 	})
 
+	// TODO: client imgur
+
 	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
 	if err != nil {
 		log.Fatalln("chat client init error: ", err)
@@ -44,15 +46,13 @@ func main() {
 	log.Println("chat api client inited")
 
 	// chat api test
-	resp, err := services.Chat.Request3DOT5Turbo("say 'Chat api work!'")
+	resp, err := services.Chat.Request3DOT5Turbo("say 'Chat api works!'")
 	if err != nil {
 		log.Fatalln("chat gpt api error: ", err)
 	}
-	log.Println("chat api test msg: ", services.Chat.GetRespMsg(resp))
+	log.Println("chat api test msg:", services.Chat.GetRespMsg(resp))
 
-	return
-
-	err = services.Connect("")
+	err = services.Selenium.Connect("")
 	if err != nil {
 		log.Println("web driver connection error: ", err)
 		return
@@ -76,6 +76,15 @@ func main() {
 	err = services.ProcessCaptcha()
 	if err != nil {
 		log.Println("cannot process captcha:", err)
+	} else {
+		log.Println("captcha was saved")
+	}
+
+	link, err := services.UploadImage("tmp/captcha.png")
+	if err != nil {
+		log.Println("failed to upload captcha:", err)
+	} else {
+		log.Println("captcha was uploaded, link: ", link)
 	}
 
 	//err = wd.Get(parseURL)
