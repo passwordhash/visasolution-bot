@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const testMsgReq = "Hello, World!"
+
 type ChatService struct {
 	token  string
 	client *openai.Client
@@ -16,6 +18,11 @@ type ChatService struct {
 
 func NewChatService(token string) *ChatService {
 	return &ChatService{token: token}
+}
+
+func (s *ChatService) TestConnection() error {
+	_, err := s.Request3DOT5Turbo(testMsgReq)
+	return err
 }
 
 func (s *ChatService) GetRespMsg(resp openai.ChatCompletionResponse) string {

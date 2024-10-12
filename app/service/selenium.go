@@ -32,6 +32,19 @@ func (s *SeleniumService) Wd() selenium.WebDriver {
 	return s.wd
 }
 
+func (s *SeleniumService) TestPage() error {
+	var err error
+
+	// header
+	_, err = s.wd.FindElement(selenium.ByXPATH, `/html/body/header/nav[1]`)
+	// body
+	_, err = s.wd.FindElement(selenium.ByXPATH, `//*[@id="div-main"]`)
+	// footer
+	_, err = s.wd.FindElement(selenium.ByXPATH, `/html/body/footer/div/div[1]/div[1]/h4`)
+
+	return err
+}
+
 func (s *SeleniumService) MaximizeWindow() error {
 	return s.wd.MaximizeWindow("")
 }
@@ -77,33 +90,6 @@ func (s *SeleniumService) ProcessCaptcha() error {
 	return util.WriteFile(util.GetAbsolutePath("tmp/captcha.png"), img)
 }
 
-func (s *SeleniumService) clickButton(byWhat, value string) error {
-	elem, err := s.wd.FindElement(byWhat, value)
-	if err != nil {
-		return err
-	}
-
-	return elem.Click()
-}
-
-//func (s *SeleniumService) ProcessCaptcha() error {
-//	var err error
-//
-//	elem, err := wd.FindElement(selenium.ByCSSSelector, `#captcha-main-div > div`)
-//	elem, err := s.wd.FindElement(selenium.ByXPATH, `//*[@id="popup_1"]/iframe`)
-//	if err != nil {
-//		return err
-//	}
-//	img, err := elem.Screenshot(false)
-//	if err != nil {
-//		return err
-//	}
-//
-//	err = util.WriteFile(util.GetAbsolutePath("tmp/captcha.png"), img)
-//
-//	return err
-//}
-
 func (s *SeleniumService) Connect(url string) error {
 	var wd selenium.WebDriver
 	var err error
@@ -141,4 +127,13 @@ func (s *SeleniumService) Connect(url string) error {
 
 func (s *SeleniumService) Quit() {
 	s.wd.Quit()
+}
+
+func (s *SeleniumService) clickButton(byWhat, value string) error {
+	elem, err := s.wd.FindElement(byWhat, value)
+	if err != nil {
+		return err
+	}
+
+	return elem.Click()
 }

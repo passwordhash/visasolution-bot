@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	"time"
 	cfg "visasolution/app/config"
 	"visasolution/app/service"
+	"visasolution/app/worker"
 )
 
 //docker run --rm -p=4444:4444 selenium/standalone-chrome
@@ -19,15 +19,6 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// chat api test
-	//resp, err := api.GPT4oMiniRequest("", config.ChatApiKey)
-	//if err != nil {
-	//	log.Fatalln("chat gpt api error: ", err)
-	//}
-	//log.Println("chat api test msg: ", api.GetRespMsg(resp))
-	//return
-
-	// selenium connect
 	services := service.NewService(service.Deps{
 		MaxTries:          maxTries,
 		BlsEmail:          config.BlsEmail,
@@ -36,22 +27,18 @@ func main() {
 		ImgurClientId:     config.ImgurClientId,
 		ImgurClientSecret: config.ImgurClientSecret,
 	})
+	workers := worker.NewWorker(services, parseURL)
 
 	// TODO: client imgur
 
+	// Chat client init
 	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
 	if err != nil {
-		log.Fatalln("chat client init error: ", err)
+		log.Fatalln("chat client init error:", err)
 	}
 	log.Println("chat api client inited")
 
-	// chat api test
-	resp, err := services.Chat.Request3DOT5Turbo("say 'Chat api works!'")
-	if err != nil {
-		log.Fatalln("chat gpt api error: ", err)
-	}
-	log.Println("chat api test msg:", services.Chat.GetRespMsg(resp))
-
+	// Selenium connect
 	err = services.Selenium.Connect("")
 	if err != nil {
 		log.Println("web driver connection error: ", err)
@@ -60,54 +47,13 @@ func main() {
 	defer services.Quit()
 	log.Println("web driver connected")
 
-	err = services.Parse(parseURL)
+	// Run worker
+	err = workers.Run()
 	if err != nil {
-		log.Println("page parse error:", err)
+		log.Println("worker run error:", err)
 		return
 	}
-	log.Println("web page parsed")
 
-	if err = services.Selenium.MaximizeWindow(); err != nil {
-		log.Println("cannot maximize window: ", err)
-	}
-
-	time.Sleep(10 * time.Second)
-
-	err = services.ProcessCaptcha()
-	if err != nil {
-		log.Println("cannot process captcha:", err)
-	} else {
-		log.Println("captcha was saved")
-	}
-
-	link, err := services.UploadImage("tmp/captcha.png")
-	if err != nil {
-		log.Println("failed to upload captcha:", err)
-	} else {
-		log.Println("captcha was uploaded, link: ", link)
-	}
-
-	//err = wd.Get(parseURL)
-	//if err != nil {
-	//	log.Println("get error: ", err)
-	//	return
-	//}
-	//
-	//// test
-	//elem, err := wd.FindElement(selenium.ByXPATH, "//*[@id=\"navbarCollapse\"]/div[1]/div/div/div/div")
-	//if err != nil {
-	//	log.Println("DOM test failed: ", err)
-	//	return
-	//}
-	//
-	//text, err := elem.Text()
-	//if err != nil {
-	//	log.Println("cannot get text of element: ", elem)
-	//	return
-	//}
-	//
-	//log.Println("finded: ", text)
-	//
 	//// form
 	//emailInput, err := wd.FindElement(selenium.ByXPATH, "//*[@id=\"UserId6\"]")
 	//if err != nil {

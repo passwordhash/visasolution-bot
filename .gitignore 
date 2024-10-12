@@ -1,6 +1,0 @@
-.env
-go.mod
-go.sum
-.idea/
-.DS_Store
-tmp/*

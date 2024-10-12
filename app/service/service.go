@@ -8,6 +8,7 @@ import (
 type Selenium interface {
 	Parse(url string) error
 	Wd() selenium.WebDriver
+	TestPage() error
 	MaximizeWindow() error
 	ProcessCaptcha() error
 	Connect(url string) error
@@ -15,6 +16,7 @@ type Selenium interface {
 }
 
 type Chat interface {
+	TestConnection() error
 	GetRespMsg(resp openai.ChatCompletionResponse) string
 	Request3DOT5Turbo(content string) (openai.ChatCompletionResponse, error)
 	ClientInitWithProxy(proxy string) error
