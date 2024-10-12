@@ -34,6 +34,11 @@ func main() {
 		BlsPassword: config.BlsPassword,
 		ChatApiKey:  config.ChatApiKey,
 	})
+
+	resp, err := services.Chat.RequestWithProxy("Hello, world!", config.ProxyRowForeign)
+	log.Println("chat api test msg: ", services.Chat.GetRespMsg(resp))
+	return
+
 	err = services.Connect("")
 	if err != nil {
 		log.Println("web driver connection error: ", err)
