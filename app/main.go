@@ -29,10 +29,12 @@ func main() {
 
 	// selenium connect
 	services := service.NewService(service.Deps{
-		MaxTries:    maxTries,
-		BlsEmail:    config.BlsEmail,
-		BlsPassword: config.BlsPassword,
-		ChatApiKey:  config.ChatApiKey,
+		MaxTries:          maxTries,
+		BlsEmail:          config.BlsEmail,
+		BlsPassword:       config.BlsPassword,
+		ChatApiKey:        config.ChatApiKey,
+		ImgurClientId:     config.ImgurClientId,
+		ImgurClientSecret: config.ImgurClientSecret,
 	})
 
 	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
