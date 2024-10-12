@@ -20,9 +20,14 @@ type Chat interface {
 	ClientInitWithProxy(proxy string) error
 }
 
+type Image interface {
+	UploadImage(url string) (string, error)
+}
+
 type Service struct {
 	Selenium
 	Chat
+	Image
 }
 
 type Deps struct {
@@ -32,11 +37,15 @@ type Deps struct {
 	BlsPassword string
 
 	ChatApiKey string
+
+	ImgurClientId     string
+	ImgurClientSecret string
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
 		Selenium: NewSeleniumService(deps.MaxTries),
 		Chat:     NewChatService(deps.ChatApiKey),
+		Image:    NewImageService(deps.ImgurClientId, deps.ImgurClientSecret),
 	}
 }

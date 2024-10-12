@@ -12,6 +12,9 @@ type Config struct {
 	ChatApiKey      string
 	ProxyRow        string
 	ProxyRowForeign string
+
+	ImgurClientId     string
+	ImgurClientSecret string
 }
 
 func LoadConfig() (Config, error) {
@@ -20,19 +23,13 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 
-	email := os.Getenv("BLS_EMAIL")
-	password := os.Getenv("BLS_PASSWORD")
-	apiKey := os.Getenv("CHAT_API_KEY")
-	proxyRow := os.Getenv("PROXY_ROW")
-	proxyRowForeign := os.Getenv("PROXY_ROW_FOREIGN")
-
-	config := Config{
-		BlsEmail:        email,
-		BlsPassword:     password,
-		ChatApiKey:      apiKey,
-		ProxyRow:        proxyRow,
-		ProxyRowForeign: proxyRowForeign,
-	}
-
-	return config, nil
+	return Config{
+		BlsEmail:          os.Getenv("BLS_EMAIL"),
+		BlsPassword:       os.Getenv("BLS_PASSWORD"),
+		ChatApiKey:        os.Getenv("CHAT_API_KEY"),
+		ProxyRow:          os.Getenv("PROXY_ROW"),
+		ProxyRowForeign:   os.Getenv("PROXY_ROW_FOREIGN"),
+		ImgurClientId:     os.Getenv("IMGUR_CLIENT_ID"),
+		ImgurClientSecret: os.Getenv("IMGUR_CLIENT_SECRET"),
+	}, nil
 }
