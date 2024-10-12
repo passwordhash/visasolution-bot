@@ -35,8 +35,19 @@ func main() {
 		ChatApiKey:  config.ChatApiKey,
 	})
 
-	resp, err := services.Chat.RequestWithProxy("Hello, world!", config.ProxyRowForeign)
+	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
+	if err != nil {
+		log.Fatalln("chat client init error: ", err)
+	}
+	log.Println("chat api client inited")
+
+	// chat api test
+	resp, err := services.Chat.Request3DOT5Turbo("say 'Chat api work!'")
+	if err != nil {
+		log.Fatalln("chat gpt api error: ", err)
+	}
 	log.Println("chat api test msg: ", services.Chat.GetRespMsg(resp))
+
 	return
 
 	err = services.Connect("")

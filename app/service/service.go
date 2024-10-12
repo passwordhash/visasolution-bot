@@ -15,9 +15,9 @@ type Selenium interface {
 }
 
 type Chat interface {
-	GPT3DOT5TurboRequest(content string) (openai.ChatCompletionResponse, error)
 	GetRespMsg(resp openai.ChatCompletionResponse) string
-	RequestWithProxy(content, proxy string) (openai.ChatCompletionResponse, error)
+	Request3DOT5Turbo(content string) (openai.ChatCompletionResponse, error)
+	ClientInitWithProxy(proxy string) error
 }
 
 type Service struct {
