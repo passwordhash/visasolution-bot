@@ -10,8 +10,10 @@ type Selenium interface {
 	Wd() selenium.WebDriver
 	TestPage() error
 	MaximizeWindow() error
-	ProcessCaptcha() error
+	PullCaptchaImage() error
+	ProcessCaptcha(numbers []int) error
 	Connect(url string) error
+	ClickButton(byWhat, value string) error
 	Quit()
 }
 
@@ -19,6 +21,7 @@ type Chat interface {
 	TestConnection() error
 	GetRespMsg(resp openai.ChatCompletionResponse) string
 	Request3DOT5Turbo(content string) (openai.ChatCompletionResponse, error)
+	Request4VPreviewWithImage(content, imageUrl string) (openai.ChatCompletionResponse, error)
 	ClientInitWithProxy(proxy string) error
 }
 

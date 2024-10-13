@@ -77,7 +77,7 @@ func main() {
 	//log.Println(verifyBtn.Click())
 	//time.Sleep(time.Second * 5)
 	//
-	//err = seleniumService.ProcessCaptcha(wd)
+	//err = seleniumService.PullCaptchaImage(wd)
 	//if err != nil {
 	//	log.Println("error while proccessing captcha: ", err)
 	//	return

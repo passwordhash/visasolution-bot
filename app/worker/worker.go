@@ -2,9 +2,13 @@ package worker
 
 import (
 	"fmt"
+	"github.com/tebeka/selenium"
 	"log"
 	"visasolution/app/service"
+	"visasolution/app/util"
 )
+
+const msg = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right.”`
 
 type Worker struct {
 	services *service.Service
@@ -25,6 +29,10 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("chat api connection error:%w", err)
 	}
 
+	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
+		return fmt.Errorf("click verify error:%w", err)
+	}
+
 	// Selenium parse page
 	if err := w.services.Parse(w.parseUrl); err != nil {
 		return fmt.Errorf("page parse error:%w", err)
@@ -43,7 +51,7 @@ func (w *Worker) Run() error {
 
 	//time.Sleep(10 * time.Second)
 
-	if err := w.services.ProcessCaptcha(); err != nil {
+	if err := w.services.PullCaptchaImage(); err != nil {
 		return fmt.Errorf("cannot process captcha:%w", err)
 	}
 	log.Println("captcha was saved")
@@ -53,6 +61,13 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("failed to upload captcha:%w", err)
 	}
 	log.Println("captcha was uploaded, link: ", link)
+
+	resp, err := w.services.Chat.Request4VPreviewWithImage(msg, link)
+	if err != nil {
+		return fmt.Errorf("request to chat api with image url error:%w", err)
+	}
+	cardNums, err := util.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
+	log.Println("cards to select: ", cardNums)
 
 	return nil
 }

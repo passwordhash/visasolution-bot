@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/chrome"
 	"log"
@@ -49,13 +48,8 @@ func (s *SeleniumService) MaximizeWindow() error {
 	return s.wd.MaximizeWindow("")
 }
 
-func (s *SeleniumService) ProcessCaptcha() error {
+func (s *SeleniumService) PullCaptchaImage() error {
 	var err error
-
-	err = s.clickButton(selenium.ByCSSSelector, "#btnVerify")
-	if err != nil {
-		return fmt.Errorf("click verify error:%w", err)
-	}
 
 	// капча находится в iframe, нужно найти и переключиться на него
 	var iframe selenium.WebElement
@@ -88,6 +82,10 @@ func (s *SeleniumService) ProcessCaptcha() error {
 	}
 
 	return util.WriteFile(util.GetAbsolutePath("tmp/captcha.png"), img)
+}
+
+func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
+	return nil
 }
 
 func (s *SeleniumService) Connect(url string) error {
@@ -129,7 +127,7 @@ func (s *SeleniumService) Quit() {
 	s.wd.Quit()
 }
 
-func (s *SeleniumService) clickButton(byWhat, value string) error {
+func (s *SeleniumService) ClickButton(byWhat, value string) error {
 	elem, err := s.wd.FindElement(byWhat, value)
 	if err != nil {
 		return err

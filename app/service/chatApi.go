@@ -20,30 +20,6 @@ func NewChatService(token string) *ChatService {
 	return &ChatService{token: token}
 }
 
-func (s *ChatService) TestConnection() error {
-	_, err := s.Request3DOT5Turbo(testMsgReq)
-	return err
-}
-
-func (s *ChatService) GetRespMsg(resp openai.ChatCompletionResponse) string {
-	return resp.Choices[0].Message.Content
-}
-
-func (s *ChatService) Request3DOT5Turbo(content string) (openai.ChatCompletionResponse, error) {
-	return s.client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: content,
-				},
-			},
-		},
-	)
-}
-
 func (s *ChatService) ClientInitWithProxy(proxy string) error {
 	proxyUrl, err := parseProxy(proxy)
 	if err != nil {
@@ -66,11 +42,16 @@ func (s *ChatService) ClientInitWithProxy(proxy string) error {
 	return nil
 }
 
-func (s *ChatService) RequestCaptchaWithProxy(content, proxy string) (openai.ChatCompletionResponse, error) {
+func (s *ChatService) TestConnection() error {
+	_, err := s.Request3DOT5Turbo(testMsgReq)
+	return err
+}
+
+func (s *ChatService) Request3DOT5Turbo(content string) (openai.ChatCompletionResponse, error) {
 	return s.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model: openai.GPT4VisionPreview,
+			Model: openai.GPT3Dot5Turbo,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
@@ -79,6 +60,36 @@ func (s *ChatService) RequestCaptchaWithProxy(content, proxy string) (openai.Cha
 			},
 		},
 	)
+}
+
+func (s *ChatService) Request4VPreviewWithImage(content, imageUrl string) (openai.ChatCompletionResponse, error) {
+	return s.client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: openai.GPT4o,
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role: openai.ChatMessageRoleUser,
+					MultiContent: []openai.ChatMessagePart{
+						{
+							Type: openai.ChatMessagePartTypeText,
+							Text: content,
+						},
+						{
+							Type: openai.ChatMessagePartTypeImageURL,
+							ImageURL: &openai.ChatMessageImageURL{
+								URL: imageUrl,
+							},
+						},
+					},
+				},
+			},
+		},
+	)
+}
+
+func (s *ChatService) GetRespMsg(resp openai.ChatCompletionResponse) string {
+	return resp.Choices[0].Message.Content
 }
 
 func parseProxy(proxyString string) (*url.URL, error) {
