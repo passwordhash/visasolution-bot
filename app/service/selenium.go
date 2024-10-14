@@ -158,3 +158,9 @@ func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElemen
 func (s *SeleniumService) switchToDefault() error {
 	return s.wd.SwitchFrame(nil)
 }
+
+func (s *SeleniumService) changeElementProperty(elem selenium.WebElement, prop, value string) error {
+	script := fmt.Sprintf(`arguments[0].style.%s = "%s";`, prop, value)
+	_, err := s.wd.ExecuteScript(script, []interface{}{elem})
+	return err
+}
