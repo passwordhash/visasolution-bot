@@ -99,7 +99,12 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		return fmt.Errorf("change element property error:%w", err)
 	}
 
-	// Получаем размеры квадрата
+	// Получаем размеров фрейма и клеток
+	dragableW, dragableH, err := s.getElementSizes(dragable)
+	if err != nil {
+		return fmt.Errorf("getting dragable sizes error:%w", err)
+	}
+
 	_, err = s.switchIFrame(selenium.ByXPATH, captchaIFrameXPath)
 	if err != nil {
 		return fmt.Errorf("switch iframe error:%w", err)
@@ -111,12 +116,33 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		return err
 	}
 
-	width, height, err := s.getElementSizes(cardImg)
+	cardW, cardH, err := s.getElementSizes(cardImg)
 	if err != nil {
-		return fmt.Errorf("getting elemnt sizes error:%w", err)
+		return fmt.Errorf("getting card image sizes error:%w", err)
 	}
 
-	log.Println("card image sizes: ", width, " ", height)
+	fmt.Println("iframe w/h: ", dragableW, "/", dragableH)
+	fmt.Println("card w/h: ", cardW, "/", cardH)
+
+	// Вычисления в примерных значения
+	horPadding := cardW / 2
+	vertPadding := float64(cardH) * 1.15
+
+	script := `
+    var event = new MouseEvent('click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true,
+        'clientX': arguments[0],
+        'clientY': arguments[1]
+    });
+    document.elementFromPoint(arguments[0], arguments[1]).dispatchEvent(event);
+`
+	x, y := horPadding+cardW/2, vertPadding+float64(cardH)/2 // координаты для перемещения курсора
+	_, err = s.wd.ExecuteScript(script, []interface{}{x, y})
+	if err != nil {
+		return fmt.Errorf("failed to execute script: %v", err)
+	}
 
 	time.Sleep(10 * time.Second)
 
