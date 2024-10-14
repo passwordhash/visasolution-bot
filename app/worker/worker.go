@@ -29,10 +29,6 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("chat api connection error:%w", err)
 	}
 
-	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
-		return fmt.Errorf("click verify error:%w", err)
-	}
-
 	// Selenium parse page
 	if err := w.services.Parse(w.parseUrl); err != nil {
 		return fmt.Errorf("page parse error:%w", err)
@@ -49,10 +45,15 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("cannot maximize window:%w", err)
 	}
 
+	// Work
+	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
+		return fmt.Errorf("click verify error:%w", err)
+	}
+
 	//time.Sleep(10 * time.Second)
 
 	if err := w.services.PullCaptchaImage(); err != nil {
-		return fmt.Errorf("cannot process captcha:%w", err)
+		return fmt.Errorf("cannot pull captcha image:%w", err)
 	}
 	log.Println("captcha was saved")
 

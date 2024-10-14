@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/chrome"
 	"log"
@@ -9,6 +10,10 @@ import (
 )
 
 const waitDuration = time.Second * 15
+
+const (
+	captchaIFrameXPath = `//*[@id="popup_1"]/iframe`
+)
 
 type SeleniumService struct {
 	wd selenium.WebDriver
@@ -49,34 +54,21 @@ func (s *SeleniumService) MaximizeWindow() error {
 }
 
 func (s *SeleniumService) PullCaptchaImage() error {
+	// переключаемся на iframe капчи, находим контейнер, возращаемся обратно,
+	// чтобы на скрине было видно содержимое капчи
 	var err error
 
-	// капча находится в iframe, нужно найти и переключиться на него
-	var iframe selenium.WebElement
-	err = s.wd.WaitWithTimeout(func(wd selenium.WebDriver) (bool, error) {
-		iframe, err = s.wd.FindElement(selenium.ByXPATH, `//*[@id="popup_1"]/iframe`)
-		if err != nil {
-			return false, err
-		}
+	iframe, err := s.switchIFrame(selenium.ByXPATH, captchaIFrameXPath)
+	if err != nil {
+		return fmt.Errorf("switch iframe error:%w", err)
+	}
 
-		return true, nil
-	}, waitDuration)
+	_, err = s.wd.FindElement(selenium.ByCSSSelector, `#captcha-main-div > div`)
 	if err != nil {
 		return err
 	}
 
-	err = s.wd.SwitchFrame(iframe)
-	if err != nil {
-		return err
-	}
-	defer s.wd.SwitchFrame(nil) // переключение обратно в корневой документ
-
-	captcha, err := s.wd.FindElement(selenium.ByCSSSelector, `#captcha-main-div > div`)
-	if err != nil {
-		return err
-	}
-
-	img, err := captcha.Screenshot(false)
+	img, err := iframe.Screenshot(false)
 	if err != nil {
 		return err
 	}
@@ -134,4 +126,26 @@ func (s *SeleniumService) ClickButton(byWhat, value string) error {
 	}
 
 	return elem.Click()
+}
+
+func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElement, error) {
+	var iframe selenium.WebElement
+	var err error
+	err = s.wd.WaitWithTimeout(func(wd selenium.WebDriver) (bool, error) {
+		iframe, err = s.wd.FindElement(byWhat, value)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}, waitDuration)
+	if err != nil {
+		return iframe, err
+	}
+
+	err = s.wd.SwitchFrame(iframe)
+	if err != nil {
+		return iframe, err
+	}
+
+	return iframe, err
 }
