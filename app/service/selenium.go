@@ -68,6 +68,11 @@ func (s *SeleniumService) PullCaptchaImage() error {
 		return err
 	}
 
+	err = s.switchToDefault()
+	if err != nil {
+		return fmt.Errorf("switch to default frame error:%w", err)
+	}
+
 	img, err := iframe.Screenshot(false)
 	if err != nil {
 		return err
@@ -148,4 +153,8 @@ func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElemen
 	}
 
 	return iframe, err
+}
+
+func (s *SeleniumService) switchToDefault() error {
+	return s.wd.SwitchFrame(nil)
 }
