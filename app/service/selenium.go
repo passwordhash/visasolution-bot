@@ -12,7 +12,8 @@ import (
 const waitDuration = time.Second * 15
 
 const (
-	captchaIFrameXPath = `//*[@id="popup_1"]/iframe`
+	captchaIFrameXPath         = `//*[@id="popup_1"]/iframe`
+	captchaDragableCSSSelector = `body > div.k-widget.k-window`
 )
 
 type SeleniumService struct {
@@ -82,6 +83,20 @@ func (s *SeleniumService) PullCaptchaImage() error {
 }
 
 func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
+	dragable, err := s.wd.FindElement(selenium.ByCSSSelector, captchaDragableCSSSelector)
+	if err != nil {
+		return err
+	}
+
+	err = s.changeElementProperties(dragable, map[string]string{
+		"display": "none",
+	})
+	if err != nil {
+		return fmt.Errorf("change element property error:%w", err)
+	}
+
+	time.Sleep(10 * time.Second)
+
 	return nil
 }
 
@@ -159,8 +174,11 @@ func (s *SeleniumService) switchToDefault() error {
 	return s.wd.SwitchFrame(nil)
 }
 
-func (s *SeleniumService) changeElementProperty(elem selenium.WebElement, prop, value string) error {
-	script := fmt.Sprintf(`arguments[0].style.%s = "%s";`, prop, value)
+func (s *SeleniumService) changeElementProperties(elem selenium.WebElement, props map[string]string) error {
+	var script string
+	for k, v := range props {
+		script += fmt.Sprintf("arguments[0].style.%s = '%s';\n", k, v)
+	}
 	_, err := s.wd.ExecuteScript(script, []interface{}{elem})
 	return err
 }
