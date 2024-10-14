@@ -14,6 +14,8 @@ const waitDuration = time.Second * 15
 const (
 	captchaIFrameXPath         = `//*[@id="popup_1"]/iframe`
 	captchaDragableCSSSelector = `body > div.k-widget.k-window`
+	captchaCardsContainerXPath = `//*[@id="captcha-main-div"]/div/div[2]`
+	captchaCardImgXPath        = `//*[@id="captcha-main-div"]/div/div[2]/div/img`
 )
 
 type SeleniumService struct {
@@ -88,12 +90,33 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		return err
 	}
 
+	// Перемещаем качу в левых верхний угол
 	err = s.changeElementProperties(dragable, map[string]string{
-		"display": "none",
+		"left": "0",
+		"top":  "0",
 	})
 	if err != nil {
 		return fmt.Errorf("change element property error:%w", err)
 	}
+
+	// Получаем размеры квадрата
+	_, err = s.switchIFrame(selenium.ByXPATH, captchaIFrameXPath)
+	if err != nil {
+		return fmt.Errorf("switch iframe error:%w", err)
+	}
+	defer s.switchToDefault()
+
+	cardImg, err := s.wd.FindElement(selenium.ByXPATH, captchaCardImgXPath)
+	if err != nil {
+		return err
+	}
+
+	width, height, err := s.getElementSizes(cardImg)
+	if err != nil {
+		return fmt.Errorf("getting elemnt sizes error:%w", err)
+	}
+
+	log.Println("card image sizes: ", width, " ", height)
 
 	time.Sleep(10 * time.Second)
 
@@ -181,4 +204,31 @@ func (s *SeleniumService) changeElementProperties(elem selenium.WebElement, prop
 	}
 	_, err := s.wd.ExecuteScript(script, []interface{}{elem})
 	return err
+}
+
+func (s *SeleniumService) getElementSizes(elem selenium.WebElement) (int, int, error) {
+	var width, heigth int
+	var err error
+
+	widthProp, err := elem.CSSProperty("width")
+	if err != nil {
+		return 0, 0, err
+	}
+
+	width, err = util.PxToInt(widthProp)
+	if err != nil {
+		return 0, 0, fmt.Errorf("convert px to int error:%w", err)
+	}
+
+	heightProp, err := elem.CSSProperty("height")
+	if err != nil {
+		return 0, 0, err
+	}
+
+	heigth, err = util.PxToInt(heightProp)
+	if err != nil {
+		return 0, 0, fmt.Errorf("convert px to int error:%w", err)
+	}
+
+	return width, heigth, nil
 }
