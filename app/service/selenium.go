@@ -16,6 +16,8 @@ const (
 	captchaDragableCSSSelector = `body > div.k-widget.k-window`
 	captchaCardsContainerXPath = `//*[@id="captcha-main-div"]/div/div[2]`
 	captchaCardImgXPath        = `//*[@id="captcha-main-div"]/div/div[2]/div/img`
+
+	submitCaptchaXPath = `//*[@id="captchaForm"]/div[2]/div[3]`
 )
 
 type SeleniumService struct {
@@ -90,7 +92,7 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		return err
 	}
 
-	// Перемещаем качу в левых верхний угол
+	// Перемещаем капчу в левых верхний угол
 	err = s.changeElementProperties(dragable, map[string]string{
 		"left": "0",
 		"top":  "0",
@@ -99,18 +101,19 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		return fmt.Errorf("change element property error:%w", err)
 	}
 
-	// Получаем размеров фрейма и клеток
-	//dragableW, dragableH, err := s.getElementSizes(dragable)
-	//if err != nil {
-	//	return fmt.Errorf("getting dragable sizes error:%w", err)
-	//}
-
+	// Переключаемся на фрейм капчи
 	_, err = s.switchIFrame(selenium.ByXPATH, captchaIFrameXPath)
 	if err != nil {
 		return fmt.Errorf("switch iframe error:%w", err)
 	}
 	defer s.switchToDefault()
 
+	submitBtn, err := s.wd.FindElement(selenium.ByXPATH, submitCaptchaXPath)
+	if err != nil {
+		return err
+	}
+
+	// Получаем размеры карточек
 	cardImg, err := s.wd.FindElement(selenium.ByXPATH, captchaCardImgXPath)
 	if err != nil {
 		return err
@@ -121,13 +124,11 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		return fmt.Errorf("getting card image sizes error:%w", err)
 	}
 
-	//fmt.Println("iframe w/h: ", dragableW, "/", dragableH)
-	//fmt.Println("card w/h: ", cardW, "/", cardH)
-
 	// Вычисления в примерных значения
 	horPadding := cardW / 2
 	vertPadding := int(float64(cardH) * 1.15)
 
+	// Проходимся по номерам карточек и кликаем вычисленным координатам для каждого номера
 	for _, n := range numbers {
 		x, y := getCardCoordinates(n, cardW, cardH)
 		err = s.clickByCoords(x+horPadding, y+vertPadding)
@@ -136,7 +137,13 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		}
 	}
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(10 * time.Second)
+
+	if err := submitBtn.Click(); err != nil {
+		return err
+	}
+
+	time.Sleep(10 * time.Second)
 
 	return nil
 }
@@ -202,7 +209,6 @@ func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElemen
 	if err != nil {
 		return iframe, err
 	}
-
 	err = s.wd.SwitchFrame(iframe)
 	if err != nil {
 		return iframe, err
