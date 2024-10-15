@@ -46,6 +46,7 @@ func (w *Worker) Run() error {
 	}
 
 	// Work
+	log.Println("start solving captcha...")
 	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
 		return fmt.Errorf("click verify error:%w", err)
 	}
@@ -72,6 +73,7 @@ func (w *Worker) Run() error {
 	if err != nil {
 		return fmt.Errorf("process captcha error:%w", err)
 	}
+	log.Println("captcha was sucsessfully processed")
 
 	return nil
 }
