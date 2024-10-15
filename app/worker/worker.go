@@ -69,7 +69,7 @@ func (w *Worker) Run() error {
 	//cardNums, err := util.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
 	//log.Println("cards to select: ", cardNums)
 
-	cardsNum := []int{1, 3, 5, 9}
+	cardsNum := []int{1, 5, 9}
 
 	err := w.services.Selenium.ProcessCaptcha(cardsNum)
 	if err != nil {

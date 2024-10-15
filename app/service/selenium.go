@@ -100,10 +100,10 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 	}
 
 	// Получаем размеров фрейма и клеток
-	dragableW, dragableH, err := s.getElementSizes(dragable)
-	if err != nil {
-		return fmt.Errorf("getting dragable sizes error:%w", err)
-	}
+	//dragableW, dragableH, err := s.getElementSizes(dragable)
+	//if err != nil {
+	//	return fmt.Errorf("getting dragable sizes error:%w", err)
+	//}
 
 	_, err = s.switchIFrame(selenium.ByXPATH, captchaIFrameXPath)
 	if err != nil {
@@ -121,30 +121,22 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		return fmt.Errorf("getting card image sizes error:%w", err)
 	}
 
-	fmt.Println("iframe w/h: ", dragableW, "/", dragableH)
-	fmt.Println("card w/h: ", cardW, "/", cardH)
+	//fmt.Println("iframe w/h: ", dragableW, "/", dragableH)
+	//fmt.Println("card w/h: ", cardW, "/", cardH)
 
 	// Вычисления в примерных значения
 	horPadding := cardW / 2
-	vertPadding := float64(cardH) * 1.15
+	vertPadding := int(float64(cardH) * 1.15)
 
-	script := `
-    var event = new MouseEvent('click', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true,
-        'clientX': arguments[0],
-        'clientY': arguments[1]
-    });
-    document.elementFromPoint(arguments[0], arguments[1]).dispatchEvent(event);
-`
-	x, y := horPadding+cardW/2, vertPadding+float64(cardH)/2 // координаты для перемещения курсора
-	_, err = s.wd.ExecuteScript(script, []interface{}{x, y})
-	if err != nil {
-		return fmt.Errorf("failed to execute script: %v", err)
+	for _, n := range numbers {
+		x, y := getCardCoordinates(n, cardW, cardH)
+		err = s.clickByCoords(x+horPadding, y+vertPadding)
+		if err != nil {
+			return fmt.Errorf("click by coords for card number №%d error:%w", n, err)
+		}
 	}
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	return nil
 }
@@ -257,4 +249,29 @@ func (s *SeleniumService) getElementSizes(elem selenium.WebElement) (int, int, e
 	}
 
 	return width, heigth, nil
+}
+
+func (s *SeleniumService) clickByCoords(x, y int) error {
+	script := `
+    var event = new MouseEvent('click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true,
+        'clientX': arguments[0],
+        'clientY': arguments[1]
+    });
+    document.elementFromPoint(arguments[0], arguments[1]).dispatchEvent(event);
+`
+	_, err := s.wd.ExecuteScript(script, []interface{}{x, y})
+	return err
+}
+
+func getCardCoordinates(cardNum, cardWidth, cardHeight int) (int, int) {
+	row := (cardNum - 1) / 3
+	col := (cardNum - 1) % 3
+
+	x := col*cardWidth + cardWidth/2
+	y := row*cardHeight + cardHeight/2
+
+	return x, y
 }
