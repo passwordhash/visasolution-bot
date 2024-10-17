@@ -6,13 +6,14 @@ import (
 )
 
 type Selenium interface {
+	Connect(url string) error
 	Parse(url string) error
 	Wd() selenium.WebDriver
 	TestPage() error
 	MaximizeWindow() error
 	PullCaptchaImage() error
 	ProcessCaptcha(numbers []int) error
-	Connect(url string) error
+	Authorize() error
 	ClickButton(byWhat, value string) error
 	Quit()
 }
@@ -49,7 +50,7 @@ type Deps struct {
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		Selenium: NewSeleniumService(deps.MaxTries),
+		Selenium: NewSeleniumService(deps.MaxTries, deps.BlsEmail, deps.BlsPassword),
 		Chat:     NewChatService(deps.ChatApiKey),
 		Image:    NewImageService(deps.ImgurClientId, deps.ImgurClientSecret),
 	}

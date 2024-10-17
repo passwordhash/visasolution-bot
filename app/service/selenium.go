@@ -16,8 +16,10 @@ const (
 	captchaDragableCSSSelector = `body > div.k-widget.k-window`
 	captchaCardsContainerXPath = `//*[@id="captcha-main-div"]/div/div[2]`
 	captchaCardImgXPath        = `//*[@id="captcha-main-div"]/div/div[2]/div/img`
+	submitCaptchaXPath         = `//*[@id="captchaForm"]/div[2]/div[3]`
 
-	submitCaptchaXPath = `//*[@id="captchaForm"]/div[2]/div[3]`
+	formInputsXPath = `/html/body/main/main/div/div/div[2]/div[2]/form/div/input`
+	formSubmitId    = `btnSubmit`
 )
 
 type SeleniumService struct {
@@ -25,12 +27,13 @@ type SeleniumService struct {
 
 	maxTries int
 	parseUrl string
+
+	blsEmail    string
+	blsPassword string
 }
 
-func NewSeleniumService(maxTries int) *SeleniumService {
-	return &SeleniumService{
-		maxTries: maxTries,
-	}
+func NewSeleniumService(maxTries int, blsEmail string, blsPassword string) *SeleniumService {
+	return &SeleniumService{maxTries: maxTries, blsEmail: blsEmail, blsPassword: blsPassword}
 }
 
 func (s *SeleniumService) Parse(url string) error {
@@ -137,13 +140,11 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 		}
 	}
 
-	time.Sleep(10 * time.Second)
-
 	if err := submitBtn.Click(); err != nil {
 		return err
 	}
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	return nil
 }
@@ -194,6 +195,37 @@ func (s *SeleniumService) ClickButton(byWhat, value string) error {
 	}
 
 	return elem.Click()
+}
+
+func (s *SeleniumService) Authorize() error {
+	formContols, err := s.wd.FindElements(selenium.ByXPATH, formInputsXPath)
+	if err != nil {
+		return err
+	}
+	submit, err := s.wd.FindElement(selenium.ByID, formSubmitId)
+	if err != nil {
+		return err
+	}
+
+	// Получение только не фейковых input'ов {email, password}
+	var controls []selenium.WebElement
+	for _, el := range formContols {
+		attr, _ := el.GetAttribute("required")
+		if attr == "true" {
+			controls = append(controls, el)
+		}
+	}
+
+	err = controls[0].SendKeys(s.blsEmail)
+	if err != nil {
+		return err
+	}
+	err = controls[1].SendKeys(s.blsPassword)
+	if err != nil {
+		return err
+	}
+
+	return submit.Click()
 }
 
 func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElement, error) {

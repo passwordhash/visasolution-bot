@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 	cfg "visasolution/app/config"
 	"visasolution/app/service"
 	"visasolution/app/worker"
@@ -53,6 +54,10 @@ func main() {
 		log.Println("worker run error:", err)
 		return
 	}
+
+	time.Sleep(10 * time.Second)
+
+	//services.Quit()
 
 	//// form
 	//emailInput, err := wd.FindElement(selenium.ByXPATH, "//*[@id=\"UserId6\"]")

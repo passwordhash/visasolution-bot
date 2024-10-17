@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/tebeka/selenium"
 	"log"
+	"time"
 	"visasolution/app/service"
 	"visasolution/app/util"
 )
@@ -74,6 +75,15 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("process captcha error:%w", err)
 	}
 	log.Println("captcha was sucsessfully processed")
+
+	// Authorization
+	if err := w.services.Selenium.Authorize(); err != nil {
+		return fmt.Errorf("authorization error:%w", err)
+	}
+
+	log.Println("work done")
+
+	time.Sleep(10 * time.Second)
 
 	return nil
 }
