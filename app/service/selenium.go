@@ -89,7 +89,7 @@ func (s *SeleniumService) PullCaptchaImage() error {
 	return util.WriteFile(util.GetAbsolutePath("tmp/captcha.png"), img)
 }
 
-func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
+func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	dragable, err := s.wd.FindElement(selenium.ByCSSSelector, captchaDragableCSSSelector)
 	if err != nil {
 		return err
@@ -143,8 +143,6 @@ func (s *SeleniumService) ProcessCaptcha(numbers []int) error {
 	if err := submitBtn.Click(); err != nil {
 		return err
 	}
-
-	time.Sleep(1 * time.Second)
 
 	return nil
 }

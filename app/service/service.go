@@ -12,7 +12,7 @@ type Selenium interface {
 	TestPage() error
 	MaximizeWindow() error
 	PullCaptchaImage() error
-	ProcessCaptcha(numbers []int) error
+	SolveCaptcha(numbers []int) error
 	Authorize() error
 	ClickButton(byWhat, value string) error
 	Quit()
