@@ -45,11 +45,34 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("cannot maximize window:%w", err)
 	}
 
-	// Work
-	log.Println("start solving captcha...")
+	// Solving captcha
 	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
 		return fmt.Errorf("click verify error:%w", err)
 	}
+
+	err := w.processCaptcha()
+	if err != nil {
+		return fmt.Errorf("solve captcha error:%w", err)
+	}
+
+	// DEBUG:
+	time.Sleep(time.Second * 5)
+
+	// Authorization
+	if err := w.services.Selenium.Authorize(); err != nil {
+		return fmt.Errorf("authorization error:%w", err)
+	}
+
+	// DEBUG:
+	time.Sleep(time.Second * 5)
+
+	log.Println("work done")
+
+	return nil
+}
+
+func (w *Worker) processCaptcha() error {
+	log.Println("captcha processing start...")
 
 	if err := w.services.PullCaptchaImage(); err != nil {
 		return fmt.Errorf("cannot pull captcha image:%w", err)
@@ -69,25 +92,11 @@ func (w *Worker) Run() error {
 	cardNums, err := util.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
 	log.Println("cards to select: ", cardNums)
 
-	err = w.services.Selenium.ProcessCaptcha(cardNums)
+	err = w.services.Selenium.SolveCaptcha(cardNums)
 	if err != nil {
 		return fmt.Errorf("process captcha error:%w", err)
 	}
 	log.Println("captcha was sucsessfully processed")
-
-	// Authorization
-	if err := w.services.Selenium.Authorize(); err != nil {
-		return fmt.Errorf("authorization error:%w", err)
-	}
-	log.Println("authorization has been successful")
-
-	// Book new
-	if err := w.services.Selenium.BookNew(); err != nil {
-		return fmt.Errorf("book new error:%w", err)
-	}
-	log.Println("book new has been successful")
-
-	log.Println("work done")
 
 	return nil
 }
