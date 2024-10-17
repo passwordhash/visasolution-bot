@@ -14,6 +14,7 @@ type Selenium interface {
 	PullCaptchaImage() error
 	ProcessCaptcha(numbers []int) error
 	Authorize() error
+	BookNew() error
 	ClickButton(byWhat, value string) error
 	Quit()
 }

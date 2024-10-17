@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/tebeka/selenium"
 	"log"
-	"time"
 	"visasolution/app/service"
 	"visasolution/app/util"
 )
@@ -80,10 +79,15 @@ func (w *Worker) Run() error {
 	if err := w.services.Selenium.Authorize(); err != nil {
 		return fmt.Errorf("authorization error:%w", err)
 	}
+	log.Println("authorization has been successful")
+
+	// Book new
+	if err := w.services.Selenium.BookNew(); err != nil {
+		return fmt.Errorf("book new error:%w", err)
+	}
+	log.Println("book new has been successful")
 
 	log.Println("work done")
-
-	time.Sleep(10 * time.Second)
 
 	return nil
 }

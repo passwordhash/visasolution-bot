@@ -20,6 +20,8 @@ const (
 
 	formInputsXPath = `/html/body/main/main/div/div/div[2]/div[2]/form/div/input`
 	formSubmitId    = `btnSubmit`
+
+	bookNewBtnXPath = `//*[@id="tns1-item1"]/div/div/div/div/a`
 )
 
 type SeleniumService struct {
@@ -226,6 +228,23 @@ func (s *SeleniumService) Authorize() error {
 	}
 
 	return submit.Click()
+}
+
+func (s *SeleniumService) BookNew() error {
+	// Нажатие на кнопку "Book new"
+	btn, err := s.wd.FindElement(selenium.ByXPATH, bookNewBtnXPath)
+	if err != nil {
+		return err
+	}
+
+	err = btn.Click()
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(10 * time.Second)
+
+	return nil
 }
 
 func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElement, error) {
