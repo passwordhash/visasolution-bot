@@ -1,15 +1,25 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/chrome"
 	"log"
+	"strings"
 	"time"
 	"visasolution/app/util"
 )
 
 const waitDuration = time.Second * 15
+
+const (
+	invalidSelectionMsg = "Invalid selection"
+)
+
+var (
+	InvalidSelectionError = errors.New("captcha invalid selection")
+)
 
 const (
 	captchaIFrameXPath         = `//*[@id="popup_1"]/iframe`
@@ -142,11 +152,29 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 		}
 	}
 
+	time.Sleep(time.Second * 1)
+
 	if err := submitBtn.Click(); err != nil {
 		return err
 	}
 
+	time.Sleep(time.Second * 1)
+
+	// Обратываем случай неверного решения капчи
+	text, err := s.wd.AlertText()
+	defer s.wd.AcceptAlert()
+
+	// TODO: сделать другую проверка на неправилное решение капчи
+	if strings.Contains(text, invalidSelectionMsg) || err == nil {
+		return InvalidSelectionError
+	}
+
 	return nil
+}
+
+func (s *SeleniumService) IsAlertPresent() bool {
+	err := s.wd.SwitchFrame("alert") // Попытка переключиться на alert
+	return err == nil
 }
 
 func (s *SeleniumService) Connect(url string) error {

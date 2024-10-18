@@ -1,14 +1,18 @@
 package worker
 
 import (
+	"errors"
 	"fmt"
 	"github.com/tebeka/selenium"
 	"log"
+	"time"
 	"visasolution/app/service"
 	"visasolution/app/util"
 )
 
 const msg = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right.”`
+
+const processCaptchaMaxTries = 5
 
 type Worker struct {
 	services *service.Service
@@ -50,9 +54,23 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("click verify error:%w", err)
 	}
 
-	err := w.processCaptcha()
-	if err != nil {
-		return fmt.Errorf("solve captcha error:%w", err)
+	var triesCnt int
+	tryErr := errors.New("")
+	// Если ошибка возникла не из-за неправильного решения капчи, возращаем ее, иначе пробуем еще
+	for triesCnt = 1; (triesCnt < processCaptchaMaxTries) && tryErr != nil; triesCnt++ {
+		log.Printf("try №%d to solve the captcha starts ...\n", triesCnt)
+		tryErr = w.processCaptcha()
+		log.Printf("try №%d to solve the captcha ended\n", triesCnt)
+		if errors.As(tryErr, &service.InvalidSelectionError) {
+			fmt.Println("invalid selection")
+			continue
+		}
+		if tryErr != nil {
+			return fmt.Errorf("solve captcha error in %d tries:%w\n", triesCnt, tryErr)
+		}
+	}
+	if tryErr != nil {
+		return fmt.Errorf("solve captcha error:%w\n", tryErr)
 	}
 
 	// DEBUG:
@@ -94,7 +112,7 @@ func (w *Worker) processCaptcha() error {
 
 	err = w.services.Selenium.SolveCaptcha(cardNums)
 	if err != nil {
-		return fmt.Errorf("process captcha error:%w", err)
+		return err
 	}
 	log.Println("captcha was sucsessfully processed")
 
