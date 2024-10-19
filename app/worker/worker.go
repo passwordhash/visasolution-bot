@@ -49,6 +49,26 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("cannot maximize window:%w", err)
 	}
 
+	// TEMP:
+	if err := w.services.Selenium.Wd().DeleteCookie(".AspNetCore.Cookies"); err != nil {
+		return err
+	}
+
+	// DEBUG:
+	//cookies, err := w.services.Wd().GetCookies()
+	//if err != nil {
+	//	return err
+	//}
+	//for _, cookie := range cookies {
+	//	fmt.Println(cookie)
+	//}
+	//err = w.services.Wd().Get("https://russia.blsspainglobal.com/Global/bls/VisaTypeVerification")
+	//if err != nil {
+	//	return err
+	//}
+	//time.Sleep(time.Second * 5)
+	//return nil
+
 	// Solving captcha
 	// TODO: move to selenium service
 	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
@@ -58,6 +78,7 @@ func (w *Worker) Run() error {
 	var triesCnt int
 	tryErr := errors.New("")
 	// Если ошибка возникла не из-за неправильного решения капчи, возращаем ее, иначе пробуем еще
+	// TODO: REFACTOR: вынести в отдельную функцию
 	for triesCnt = 1; (triesCnt < processCaptchaMaxTries) && tryErr != nil; triesCnt++ {
 		log.Printf("try №%d to solve the captcha starts ...\n", triesCnt)
 		tryErr = w.processCaptcha()
@@ -89,6 +110,43 @@ func (w *Worker) Run() error {
 	if err := w.services.Selenium.BookNew(); err != nil {
 		return fmt.Errorf("book new error:%w", err)
 	}
+
+	log.Println("time to solve second captcha...")
+
+	//if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
+	//	return err
+	//}
+
+	w.services.Selenium.Wd().Refresh()
+
+	// DEBUG:
+	time.Sleep(time.Second * 5)
+
+	// TODO: move to selenium service
+	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
+		return fmt.Errorf("click verify error:%w", err)
+	}
+
+	tryErr = errors.New("")
+	// TODO: REFACTOR: вынести в отдельную функцию
+	for triesCnt = 1; (triesCnt < processCaptchaMaxTries) && tryErr != nil; triesCnt++ {
+		log.Printf("try №%d to solve the captcha starts ...\n", triesCnt)
+		tryErr = w.processCaptcha()
+		log.Printf("try №%d to solve the captcha ended\n", triesCnt)
+		if errors.As(tryErr, &service.InvalidSelectionError) {
+			fmt.Println("invalid selection")
+			continue
+		}
+		if tryErr != nil {
+			return fmt.Errorf("solve captcha error in %d tries:%w\n", triesCnt, tryErr)
+		}
+	}
+	if tryErr != nil {
+		return fmt.Errorf("solve captcha error:%w\n", tryErr)
+	}
+
+	// DEBUG:
+	time.Sleep(time.Second * 10)
 
 	log.Println("work done")
 

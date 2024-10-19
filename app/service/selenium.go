@@ -186,7 +186,7 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	// Проходимся по номерам карточек и кликаем вычисленным координатам для каждого номера
 	for _, n := range numbers {
 		// TEMP:
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 500)
 		x, y := getCardCoordinates(n, cardW, cardH)
 		err = s.clickByCoords(x+horPadding, y+vertPadding)
 		if err != nil {
@@ -199,6 +199,7 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	if err := submitBtn.Click(); err != nil {
 		return err
 	}
+	log.Println("submit captcha")
 
 	time.Sleep(time.Second * 2)
 
@@ -213,11 +214,6 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	}
 
 	return nil
-}
-
-func (s *SeleniumService) IsAlertPresent() bool {
-	err := s.wd.SwitchFrame("alert") // Попытка переключиться на alert
-	return err == nil
 }
 
 func (s *SeleniumService) Authorize() error {
@@ -252,19 +248,15 @@ func (s *SeleniumService) Authorize() error {
 }
 
 func (s *SeleniumService) BookNew() error {
-	// Нажатие на кнопку "Book new"
-	//btn, err := s.wd.FindElement(selenium.ByXPATH, bookNewBtnXPath)
-	btn, err := s.findWithTimeout(selenium.ByXPATH, bookNewBtnXPath)
+	err := s.wd.WaitWithTimeoutAndInterval(func(wd selenium.WebDriver) (bool, error) {
+		err := s.ClickButton(selenium.ByXPATH, bookNewBtnXPath)
+		return err == nil, err
+	}, waitDuration, time.Second*1)
 	if err != nil {
-		return err
+		return fmt.Errorf("click book new btn error:%w", err)
 	}
 
-	err = btn.Click()
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(10 * time.Second)
+	time.Sleep(time.Second * 3)
 
 	return nil
 }
@@ -291,16 +283,17 @@ func (s *SeleniumService) findWithTimeout(byWhat, value string) (selenium.WebEle
 	return element, err
 }
 
+// TODO: REFACOTR
 func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElement, error) {
 	var iframe selenium.WebElement
 	var err error
-	err = s.wd.WaitWithTimeout(func(wd selenium.WebDriver) (bool, error) {
+	err = s.wd.WaitWithTimeoutAndInterval(func(wd selenium.WebDriver) (bool, error) {
 		iframe, err = s.wd.FindElement(byWhat, value)
 		if err != nil {
 			return false, err
 		}
 		return true, nil
-	}, waitDuration)
+	}, waitDuration, time.Second*1)
 	if err != nil {
 		return iframe, err
 	}
