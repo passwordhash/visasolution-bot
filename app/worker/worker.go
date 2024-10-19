@@ -73,16 +73,21 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("solve captcha error:%w\n", tryErr)
 	}
 
-	// DEBUG:
-	time.Sleep(time.Second * 5)
+	// TODO: сделать ожидание прогрузки
+	time.Sleep(time.Second * 3)
 
 	// Authorization
 	if err := w.services.Selenium.Authorize(); err != nil {
 		return fmt.Errorf("authorization error:%w", err)
 	}
 
-	// DEBUG:
-	time.Sleep(time.Second * 5)
+	// TODO: сделать ожидание прогрузки
+	time.Sleep(time.Second * 3)
+
+	// Book new
+	if err := w.services.Selenium.BookNew(); err != nil {
+		return fmt.Errorf("book new error:%w", err)
+	}
 
 	log.Println("work done")
 

@@ -107,7 +107,7 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 		return err
 	}
 
-	// Перемещаем капчу в левых верхний угол
+	// Перемещаем капчу в левый верхний угол
 	err = s.changeElementProperties(dragable, map[string]string{
 		"left": "0",
 		"top":  "0",
