@@ -50,6 +50,7 @@ func (w *Worker) Run() error {
 	}
 
 	// Solving captcha
+	// TODO: move to selenium service
 	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
 		return fmt.Errorf("click verify error:%w", err)
 	}

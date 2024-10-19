@@ -69,11 +69,51 @@ func (s *SeleniumService) TestPage() error {
 	return err
 }
 
+func (s *SeleniumService) Connect(url string) error {
+	var wd selenium.WebDriver
+	var err error
+
+	caps := selenium.Capabilities{
+		"browserName": "chrome",
+	}
+
+	chrCaps := chrome.Capabilities{
+		W3C: true,
+	}
+	caps.AddChrome(chrCaps)
+
+	// адрес нашего драйвера
+	urlPrefix := url
+	if url == "" {
+		urlPrefix = selenium.DefaultURLPrefix
+	}
+	i := 0
+	for i < s.maxTries {
+		wd, err = selenium.NewRemote(caps, urlPrefix)
+		if err != nil {
+			log.Println(err)
+			i++
+			time.Sleep(time.Second * 1)
+			continue
+		}
+		break
+	}
+
+	s.wd = wd
+
+	return err
+}
+
 func (s *SeleniumService) MaximizeWindow() error {
 	return s.wd.MaximizeWindow("")
 }
 
+func (s *SeleniumService) Quit() {
+	s.wd.Quit()
+}
+
 func (s *SeleniumService) PullCaptchaImage() error {
+	// TODO: REFACTOR перенести часть в worker
 	// переключаемся на iframe капчи, находим контейнер, возращаемся обратно,
 	// чтобы на скрине было видно содержимое капчи
 	var err error
@@ -145,6 +185,8 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 
 	// Проходимся по номерам карточек и кликаем вычисленным координатам для каждого номера
 	for _, n := range numbers {
+		// TEMP:
+		time.Sleep(time.Second * 1)
 		x, y := getCardCoordinates(n, cardW, cardH)
 		err = s.clickByCoords(x+horPadding, y+vertPadding)
 		if err != nil {
@@ -152,18 +194,19 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 		}
 	}
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 2)
 
 	if err := submitBtn.Click(); err != nil {
 		return err
 	}
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 2)
 
 	// Обратываем случай неверного решения капчи
 	text, err := s.wd.AlertText()
 	defer s.wd.AcceptAlert()
 
+	log.Println("alert text and error: ", text, " ", err)
 	// TODO: сделать другую проверка на неправилное решение капчи
 	if strings.Contains(text, invalidSelectionMsg) || err == nil {
 		return InvalidSelectionError
@@ -175,54 +218,6 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 func (s *SeleniumService) IsAlertPresent() bool {
 	err := s.wd.SwitchFrame("alert") // Попытка переключиться на alert
 	return err == nil
-}
-
-func (s *SeleniumService) Connect(url string) error {
-	var wd selenium.WebDriver
-	var err error
-
-	caps := selenium.Capabilities{
-		"browserName": "chrome",
-	}
-
-	chrCaps := chrome.Capabilities{
-		W3C: true,
-	}
-	caps.AddChrome(chrCaps)
-
-	// адрес нашего драйвера
-	urlPrefix := url
-	if url == "" {
-		urlPrefix = selenium.DefaultURLPrefix
-	}
-	i := 0
-	for i < s.maxTries {
-		wd, err = selenium.NewRemote(caps, urlPrefix)
-		if err != nil {
-			log.Println(err)
-			i++
-			time.Sleep(time.Second * 1)
-			continue
-		}
-		break
-	}
-
-	s.wd = wd
-
-	return err
-}
-
-func (s *SeleniumService) Quit() {
-	s.wd.Quit()
-}
-
-func (s *SeleniumService) ClickButton(byWhat, value string) error {
-	elem, err := s.wd.FindElement(byWhat, value)
-	if err != nil {
-		return err
-	}
-
-	return elem.Click()
 }
 
 func (s *SeleniumService) Authorize() error {
@@ -258,7 +253,8 @@ func (s *SeleniumService) Authorize() error {
 
 func (s *SeleniumService) BookNew() error {
 	// Нажатие на кнопку "Book new"
-	btn, err := s.wd.FindElement(selenium.ByXPATH, bookNewBtnXPath)
+	//btn, err := s.wd.FindElement(selenium.ByXPATH, bookNewBtnXPath)
+	btn, err := s.findWithTimeout(selenium.ByXPATH, bookNewBtnXPath)
 	if err != nil {
 		return err
 	}
@@ -271,6 +267,15 @@ func (s *SeleniumService) BookNew() error {
 	time.Sleep(10 * time.Second)
 
 	return nil
+}
+
+func (s *SeleniumService) ClickButton(byWhat, value string) error {
+	elem, err := s.wd.FindElement(byWhat, value)
+	if err != nil {
+		return err
+	}
+
+	return elem.Click()
 }
 
 func (s *SeleniumService) findWithTimeout(byWhat, value string) (selenium.WebElement, error) {
