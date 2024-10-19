@@ -273,6 +273,19 @@ func (s *SeleniumService) BookNew() error {
 	return nil
 }
 
+func (s *SeleniumService) findWithTimeout(byWhat, value string) (selenium.WebElement, error) {
+	var element selenium.WebElement
+	var findErr error
+	err := s.wd.WaitWithTimeout(func(wd selenium.WebDriver) (bool, error) {
+		element, findErr = wd.FindElement(byWhat, value)
+		if findErr != nil {
+			return false, findErr
+		}
+		return true, nil
+	}, waitDuration)
+	return element, err
+}
+
 func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElement, error) {
 	var iframe selenium.WebElement
 	var err error
