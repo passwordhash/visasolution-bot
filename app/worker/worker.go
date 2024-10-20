@@ -13,6 +13,8 @@ const msg = `you see an image with the task: ‘Select all squares with the numb
 
 const processCaptchaMaxTries = 5
 
+const captchaRelativePath = "tmp/captcha.png"
+
 type Worker struct {
 	services *service.Service
 	parseUrl string
@@ -120,7 +122,6 @@ func (w *Worker) Run() error {
 	// DEBUG:
 	time.Sleep(time.Second * 5)
 
-	// TODO: move to selenium service
 	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
 		return fmt.Errorf("click verify error:%w", err)
 	}
@@ -154,12 +155,12 @@ func (w *Worker) Run() error {
 func (w *Worker) processCaptcha() error {
 	log.Println("captcha processing start...")
 
-	if err := w.services.PullCaptchaImage(); err != nil {
-		return fmt.Errorf("cannot pull captcha image:%w", err)
+	err := w.saveCaptchaImage(captchaRelativePath)
+	if err != nil {
+		return fmt.Errorf("save captcha image error:%w", err)
 	}
-	log.Println("captcha was saved")
 
-	link, err := w.services.UploadImage("tmp/captcha.png")
+	link, err := w.services.UploadImage(captchaRelativePath)
 	if err != nil {
 		return fmt.Errorf("failed to upload captcha:%w", err)
 	}
@@ -179,4 +180,12 @@ func (w *Worker) processCaptcha() error {
 	log.Println("captcha was sucsessfully processed")
 
 	return nil
+}
+
+func (w *Worker) saveCaptchaImage(relativePath string) error {
+	img, err := w.services.Selenium.PullCaptchaImage()
+	if err != nil {
+		return fmt.Errorf("cannot pull captcha image:%w", err)
+	}
+	return util.WriteFile(util.GetAbsolutePath(relativePath), img)
 }

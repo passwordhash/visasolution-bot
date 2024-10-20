@@ -11,7 +11,7 @@ type Selenium interface {
 	Wd() selenium.WebDriver
 	TestPage() error
 	MaximizeWindow() error
-	PullCaptchaImage() error
+	PullCaptchaImage() ([]byte, error)
 	SolveCaptcha(numbers []int) error
 	Authorize() error
 	BookNew() error

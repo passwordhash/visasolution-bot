@@ -112,7 +112,7 @@ func (s *SeleniumService) Quit() {
 	s.wd.Quit()
 }
 
-func (s *SeleniumService) PullCaptchaImage() error {
+func (s *SeleniumService) PullCaptchaImage() ([]byte, error) {
 	// TODO: REFACTOR перенести часть в worker
 	// переключаемся на iframe капчи, находим контейнер, возращаемся обратно,
 	// чтобы на скрине было видно содержимое капчи
@@ -120,25 +120,26 @@ func (s *SeleniumService) PullCaptchaImage() error {
 
 	iframe, err := s.switchIFrame(selenium.ByXPATH, captchaIFrameXPath)
 	if err != nil {
-		return fmt.Errorf("switch iframe error:%w", err)
+		return []byte{}, fmt.Errorf("switch iframe error:%w", err)
 	}
 
 	_, err = s.wd.FindElement(selenium.ByCSSSelector, `#captcha-main-div > div`)
 	if err != nil {
-		return err
+		return []byte{}, err
 	}
 
 	err = s.switchToDefault()
 	if err != nil {
-		return fmt.Errorf("switch to default frame error:%w", err)
+		return []byte{}, fmt.Errorf("switch to default frame error:%w", err)
 	}
 
 	img, err := iframe.Screenshot(false)
 	if err != nil {
-		return err
+		return []byte{}, err
 	}
 
-	return util.WriteFile(util.GetAbsolutePath("tmp/captcha.png"), img)
+	//return util.WriteFile(util.GetAbsolutePath("tmp/captcha.png"), img)
+	return img, nil
 }
 
 func (s *SeleniumService) SolveCaptcha(numbers []int) error {
