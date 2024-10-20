@@ -3,7 +3,6 @@ package worker
 import (
 	"errors"
 	"fmt"
-	"github.com/tebeka/selenium"
 	"log"
 	"time"
 	"visasolution/app/service"
@@ -70,8 +69,7 @@ func (w *Worker) Run() error {
 	//return nil
 
 	// Solving captcha
-	// TODO: move to selenium service
-	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
+	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
 		return fmt.Errorf("click verify error:%w", err)
 	}
 
@@ -117,13 +115,13 @@ func (w *Worker) Run() error {
 	//	return err
 	//}
 
-	w.services.Selenium.Wd().Refresh()
+	//w.services.Selenium.Wd().Refresh()
 
 	// DEBUG:
 	time.Sleep(time.Second * 5)
 
 	// TODO: move to selenium service
-	if err := w.services.Selenium.ClickButton(selenium.ByCSSSelector, "#btnVerify"); err != nil {
+	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
 		return fmt.Errorf("click verify error:%w", err)
 	}
 

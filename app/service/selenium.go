@@ -249,7 +249,7 @@ func (s *SeleniumService) Authorize() error {
 
 func (s *SeleniumService) BookNew() error {
 	err := s.wd.WaitWithTimeoutAndInterval(func(wd selenium.WebDriver) (bool, error) {
-		err := s.ClickButton(selenium.ByXPATH, bookNewBtnXPath)
+		err := s.clickButton(selenium.ByXPATH, bookNewBtnXPath)
 		return err == nil, err
 	}, waitDuration, time.Second*1)
 	if err != nil {
@@ -261,7 +261,11 @@ func (s *SeleniumService) BookNew() error {
 	return nil
 }
 
-func (s *SeleniumService) ClickButton(byWhat, value string) error {
+func (s *SeleniumService) ClickVerifyBtn() error {
+	return s.clickButton(selenium.ByCSSSelector, "#btnVerify")
+}
+
+func (s *SeleniumService) clickButton(byWhat, value string) error {
 	elem, err := s.wd.FindElement(byWhat, value)
 	if err != nil {
 		return err
