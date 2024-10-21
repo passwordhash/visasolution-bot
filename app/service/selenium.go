@@ -104,6 +104,44 @@ func (s *SeleniumService) Connect(url string) error {
 	return err
 }
 
+func (s *SeleniumService) ConnectWithProxy(url, extensionPath string) error {
+	var wd selenium.WebDriver
+	var err error
+
+	caps := selenium.Capabilities{
+		"browserName": "chrome",
+	}
+
+	chrCaps := chrome.Capabilities{
+		W3C: true,
+	}
+	if err := chrCaps.AddExtension(extensionPath); err != nil {
+		return err
+	}
+	caps.AddChrome(chrCaps)
+
+	// адрес нашего драйвера
+	urlPrefix := url
+	if url == "" {
+		urlPrefix = selenium.DefaultURLPrefix
+	}
+	i := 0
+	for i < s.maxTries {
+		wd, err = selenium.NewRemote(caps, urlPrefix)
+		if err != nil {
+			log.Println(err)
+			i++
+			time.Sleep(time.Second * 1)
+			continue
+		}
+		break
+	}
+
+	s.wd = wd
+
+	return err
+}
+
 func (s *SeleniumService) MaximizeWindow() error {
 	return s.wd.MaximizeWindow("")
 }

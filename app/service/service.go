@@ -7,6 +7,7 @@ import (
 
 type Selenium interface {
 	Connect(url string) error
+	ConnectWithProxy(url, extansionPath string) error
 	Parse(url string) error
 	Wd() selenium.WebDriver
 	TestPage() error

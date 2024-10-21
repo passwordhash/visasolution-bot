@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 	cfg "visasolution/app/config"
 	"visasolution/app/service"
 )
@@ -38,13 +39,24 @@ func main() {
 	//log.Println("chat api client inited")
 
 	// Selenium connect
-	err = services.Selenium.Connect("")
+	//err = services.Selenium.Connect("")
+	err = services.Selenium.ConnectWithProxy("", "proxy_auth_plugin.zip")
 	if err != nil {
 		log.Println("web driver connection error: ", err)
 		return
 	}
 	defer services.Quit()
 	log.Println("web driver connected")
+
+	// Test
+	wd := services.Wd()
+	err = wd.Get(parseURL)
+	if err != nil {
+		log.Println("get url error: ", err)
+		return
+	}
+
+	time.Sleep(time.Second * 10)
 
 	// Run worker
 	//err = workers.Run()
