@@ -4,7 +4,6 @@ import (
 	"log"
 	cfg "visasolution/app/config"
 	"visasolution/app/service"
-	"visasolution/app/worker"
 )
 
 //docker run --rm -p=4444:4444 selenium/standalone-chrome
@@ -27,16 +26,16 @@ func main() {
 		ImgurClientId:     config.ImgurClientId,
 		ImgurClientSecret: config.ImgurClientSecret,
 	})
-	workers := worker.NewWorker(services, parseURL)
+	//workers := worker.NewWorker(services, parseURL)
 
 	// TODO: client imgur
 
 	// Chat client init
-	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
-	if err != nil {
-		log.Fatalln("chat client init error:", err)
-	}
-	log.Println("chat api client inited")
+	//err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
+	//if err != nil {
+	//	log.Fatalln("chat client init error:", err)
+	//}
+	//log.Println("chat api client inited")
 
 	// Selenium connect
 	err = services.Selenium.Connect("")
@@ -48,9 +47,9 @@ func main() {
 	log.Println("web driver connected")
 
 	// Run worker
-	err = workers.Run()
-	if err != nil {
-		log.Println("worker run error:", err)
-		return
-	}
+	//err = workers.Run()
+	//if err != nil {
+	//	log.Println("worker run error:", err)
+	//	return
+	//}
 }
