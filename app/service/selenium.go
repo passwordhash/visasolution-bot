@@ -13,13 +13,9 @@ import (
 
 const waitDuration = time.Second * 15
 
-const (
-	invalidSelectionMsg = "Invalid selection"
-)
+const invalidSelectionMsg = "Invalid selection"
 
-var (
-	InvalidSelectionError = errors.New("captcha invalid selection")
-)
+var InvalidSelectionError = errors.New("captcha invalid selection")
 
 const (
 	captchaIFrameXPath         = `//*[@id="popup_1"]/iframe`
@@ -104,7 +100,7 @@ func (s *SeleniumService) Connect(url string) error {
 	return err
 }
 
-func (s *SeleniumService) ConnectWithProxy(url, extensionPath string) error {
+func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath string) error {
 	var wd selenium.WebDriver
 	var err error
 
@@ -115,7 +111,7 @@ func (s *SeleniumService) ConnectWithProxy(url, extensionPath string) error {
 	chrCaps := chrome.Capabilities{
 		W3C: true,
 	}
-	if err := chrCaps.AddExtension(extensionPath); err != nil {
+	if err := chrCaps.AddExtension(chromeExtensionPath); err != nil {
 		return err
 	}
 	caps.AddChrome(chrCaps)

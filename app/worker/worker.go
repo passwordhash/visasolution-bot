@@ -13,7 +13,9 @@ const msg = `you see an image with the task: ‘Select all squares with the numb
 
 const processCaptchaMaxTries = 5
 
-const captchaRelativePath = "tmp/captcha.png"
+const tmpFolder = "tmp/"
+
+var captchaRelativePath = tmpFolder + "captcha.png"
 
 type Worker struct {
 	services *service.Service

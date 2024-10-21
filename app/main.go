@@ -5,6 +5,7 @@ import (
 	"time"
 	cfg "visasolution/app/config"
 	"visasolution/app/service"
+	"visasolution/app/worker"
 )
 
 //docker run --rm -p=4444:4444 selenium/standalone-chrome
@@ -27,7 +28,7 @@ func main() {
 		ImgurClientId:     config.ImgurClientId,
 		ImgurClientSecret: config.ImgurClientSecret,
 	})
-	//workers := worker.NewWorker(services, parseURL)
+	workers := worker.NewWorker(services, parseURL)
 
 	// TODO: client imgur
 
@@ -38,9 +39,17 @@ func main() {
 	//}
 	//log.Println("chat api client inited")
 
+	// Generate proxy auth extension
+	extensionPath, err := workers.GenerateProxyAuthExtension(config.ProxyRow)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("proxy auth extension generated")
+
 	// Selenium connect
 	//err = services.Selenium.Connect("")
-	err = services.Selenium.ConnectWithProxy("", "proxy_auth_plugin.zip")
+	err = services.Selenium.ConnectWithProxy("", extensionPath)
 	if err != nil {
 		log.Println("web driver connection error: ", err)
 		return

@@ -27,7 +27,7 @@ func LoadConfig() (Config, error) {
 		BlsEmail:          os.Getenv("BLS_EMAIL"),
 		BlsPassword:       os.Getenv("BLS_PASSWORD"),
 		ChatApiKey:        os.Getenv("CHAT_API_KEY"),
-		ProxyRow:          os.Getenv("PROXY_ROW"),
+		ProxyRow:          os.Getenv("PROXY_ROW_RUSSIA"),
 		ProxyRowForeign:   os.Getenv("PROXY_ROW_FOREIGN"),
 		ImgurClientId:     os.Getenv("IMGUR_CLIENT_ID"),
 		ImgurClientSecret: os.Getenv("IMGUR_CLIENT_SECRET"),

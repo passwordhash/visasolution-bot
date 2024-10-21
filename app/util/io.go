@@ -1,7 +1,9 @@
 package util
 
 import (
+	"archive/zip"
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -38,4 +40,44 @@ func EncodeBase64Image(imagePath string) (string, error) {
 
 	base64Image := base64.StdEncoding.EncodeToString(imageData)
 	return base64Image, nil
+}
+
+func CreateZip(filenames []string, contents [][]byte, zipFilename string) error {
+	// Создаем новый ZIP-файл
+	zipFile, err := os.Create(zipFilename)
+	if err != nil {
+		return fmt.Errorf("error creating ZIP file: %v", err)
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	if len(filenames) != len(contents) {
+		return fmt.Errorf("filenames and contents slices should have the same length")
+	}
+
+	for i, filename := range filenames {
+		if err := AddFileToZip(zipWriter, filename, contents[i]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AddFileToZip добавляет файл с заданным содержимым в zip.Writer
+func AddFileToZip(zipWriter *zip.Writer, fileName string, content []byte) error {
+	fileWriter, err := zipWriter.Create(fileName)
+	if err != nil {
+		return fmt.Errorf("error creating file in ZIP: %v", err)
+	}
+
+	// Записываем содержимое в файл
+	_, err = fileWriter.Write(content)
+	if err != nil {
+		return fmt.Errorf("error writing content to file in ZIP: %v", err)
+	}
+
+	return nil
 }
