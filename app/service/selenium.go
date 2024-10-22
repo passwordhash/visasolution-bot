@@ -100,6 +100,9 @@ func (s *SeleniumService) Connect(url string) error {
 	return err
 }
 
+// ConnectWithProxy подключается к selenium с прокси аутентификацией.
+// url - адрес нашего драйвера
+// chromeExtensionPath - путь к расширению для авторизации через прокси
 func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath string) error {
 	var wd selenium.WebDriver
 	var err error

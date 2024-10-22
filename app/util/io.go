@@ -42,6 +42,7 @@ func EncodeBase64Image(imagePath string) (string, error) {
 	return base64Image, nil
 }
 
+// CreateZip создает ZIP-файл с заданными именами файлов и содержимым
 func CreateZip(filenames []string, contents [][]byte, zipFilename string) error {
 	// Создаем новый ZIP-файл
 	zipFile, err := os.Create(zipFilename)

@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 	cfg "visasolution/app/config"
 	"visasolution/app/service"
 	"visasolution/app/worker"
@@ -33,22 +32,19 @@ func main() {
 	// TODO: client imgur
 
 	// Chat client init
-	//err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
-	//if err != nil {
-	//	log.Fatalln("chat client init error:", err)
-	//}
-	//log.Println("chat api client inited")
+	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
+	if err != nil {
+		log.Fatalln("chat client init error:", err)
+	}
+	log.Println("chat api client inited")
 
 	// Generate proxy auth extension
 	extensionPath, err := workers.GenerateProxyAuthExtension(config.ProxyRow)
 	if err != nil {
-		log.Println(err)
-		return
+		log.Println("generate proxy auth extension error:", err)
 	}
-	log.Println("proxy auth extension generated")
 
 	// Selenium connect
-	//err = services.Selenium.Connect("")
 	err = services.Selenium.ConnectWithProxy("", extensionPath)
 	if err != nil {
 		log.Println("web driver connection error: ", err)
@@ -57,20 +53,10 @@ func main() {
 	defer services.Quit()
 	log.Println("web driver connected")
 
-	// Test
-	wd := services.Wd()
-	err = wd.Get(parseURL)
+	// Run worker
+	err = workers.Run()
 	if err != nil {
-		log.Println("get url error: ", err)
+		log.Println("worker run error:", err)
 		return
 	}
-
-	time.Sleep(time.Second * 10)
-
-	// Run worker
-	//err = workers.Run()
-	//if err != nil {
-	//	log.Println("worker run error:", err)
-	//	return
-	//}
 }
