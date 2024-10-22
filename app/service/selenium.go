@@ -65,6 +65,7 @@ func (s *SeleniumService) TestPage() error {
 	return err
 }
 
+// TODO: объединить функции Connect и ConnectWithProxy
 func (s *SeleniumService) Connect(url string) error {
 	var wd selenium.WebDriver
 	var err error
@@ -286,6 +287,8 @@ func (s *SeleniumService) Authorize() error {
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(time.Millisecond * 500)
 
 	return submit.Click()
 }

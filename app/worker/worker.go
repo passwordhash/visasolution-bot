@@ -48,24 +48,9 @@ func (w *Worker) Run() error {
 	}
 
 	// Delete auth cookie
-	if err := w.services.Selenium.DeleteCookie(".AspNetCore.Cookies"); err != nil {
-		return err
-	}
-
-	// DEBUG:
-	//cookies, err := w.services.Wd().GetCookies()
-	//if err != nil {
+	//if err := w.services.Selenium.DeleteCookie(".AspNetCore.Cookies"); err != nil {
 	//	return err
 	//}
-	//for _, cookie := range cookies {
-	//	fmt.Println(cookie)
-	//}
-	//err = w.services.Wd().Get("https://russia.blsspainglobal.com/Global/bls/VisaTypeVerification")
-	//if err != nil {
-	//	return err
-	//}
-	//time.Sleep(time.Second * 5)
-	//return nil
 
 	// Solving first captcha
 	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
@@ -90,9 +75,9 @@ func (w *Worker) Run() error {
 	time.Sleep(time.Second * 3)
 
 	// Book new
-	if err := w.services.Selenium.BookNew(); err != nil {
-		return fmt.Errorf("book new error:%w", err)
-	}
+	//if err := w.services.Selenium.BookNew(); err != nil {
+	//	return fmt.Errorf("book new error:%w", err)
+	//}
 	// or:
 	//if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
 	//	return err

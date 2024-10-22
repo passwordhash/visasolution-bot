@@ -9,7 +9,7 @@ import (
 
 //docker run --rm -p=4444:4444 selenium/standalone-chrome
 
-const parseURL = "https://russia.blsspainglobal.com/Global/account/login"
+const parseURL = "https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"
 const maxTries = 10
 
 func main() {
