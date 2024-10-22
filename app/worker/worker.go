@@ -72,11 +72,18 @@ func (w *Worker) Run() error {
 	}
 	log.Println("Authorization successfully")
 
-	//TODO: сделать ожидание прогрузки
-	//time.Sleep(time.Second * 6)
-	//if err := w.services.Selenium.waitAndRetry(w.services.Selenium.BookNew); err != nil {
-	//	return fmt.Errorf("wait element and click error:%w", err)
+	// TODO: код до "<<<" надо переписать
+	time.Sleep(time.Second * 15)
+
+	//if err := w.services.Wd().Refresh(); err != nil {
+	//	return fmt.Errorf("cannot refresh: %w", w)
 	//}
+	if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
+		return err
+	}
+
+	// DEBUG:
+	time.Sleep(time.Second * 15)
 
 	// Book new
 	//if err := w.services.Selenium.BookNew(); err != nil {
@@ -86,6 +93,7 @@ func (w *Worker) Run() error {
 	//if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
 	//	return err
 	//}
+	// TODO: <<<
 
 	// Solving second captcha
 	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
