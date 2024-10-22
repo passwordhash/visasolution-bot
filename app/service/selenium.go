@@ -141,6 +141,10 @@ func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath strin
 	return err
 }
 
+func (s *SeleniumService) DeleteCookie(name string) error {
+	return s.wd.DeleteCookie(name)
+}
+
 func (s *SeleniumService) MaximizeWindow() error {
 	return s.wd.MaximizeWindow("")
 }
@@ -245,7 +249,8 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	text, err := s.wd.AlertText()
 	defer s.wd.AcceptAlert()
 
-	log.Println("alert text and error: ", text, " ", err)
+	// DEBUG:
+	fmt.Println("alert text and error: ", text, " ", err)
 	// TODO: сделать другую проверка на неправилное решение капчи
 	if strings.Contains(text, invalidSelectionMsg) || err == nil {
 		return InvalidSelectionError

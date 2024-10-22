@@ -34,29 +34,29 @@ func main() {
 	// Chat client init
 	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
 	if err != nil {
-		log.Fatalln("chat client init error:", err)
+		log.Fatalln("Chat client init error:", err)
 	}
-	log.Println("chat api client inited")
+	log.Println("Chat api client inited")
 
 	// Generate proxy auth extension
 	extensionPath, err := workers.GenerateProxyAuthExtension(config.ProxyRow)
 	if err != nil {
-		log.Println("generate proxy auth extension error:", err)
+		log.Println("Generate proxy auth extension error:", err)
 	}
 
 	// Selenium connect
 	err = services.Selenium.ConnectWithProxy("", extensionPath)
 	if err != nil {
-		log.Println("web driver connection error: ", err)
+		log.Println("Web driver connection error: ", err)
 		return
 	}
 	defer services.Quit()
-	log.Println("web driver connected")
+	log.Println("Web driver connected")
 
 	// Run worker
 	err = workers.Run()
 	if err != nil {
-		log.Println("worker run error:", err)
+		log.Println("Worker run error:", err)
 		return
 	}
 }

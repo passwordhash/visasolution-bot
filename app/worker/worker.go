@@ -1,21 +1,15 @@
 package worker
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"time"
 	"visasolution/app/service"
-	"visasolution/app/util"
 )
-
-const msg = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right.”`
 
 const processCaptchaMaxTries = 5
 
 const tmpFolder = "tmp/"
-
-var captchaRelativePath = tmpFolder + "captcha.png"
 
 type Worker struct {
 	services *service.Service
@@ -29,7 +23,7 @@ func NewWorker(services *service.Service, parseUrl string) *Worker {
 	}
 }
 
-// Run function should be called when selenium is already connected and chat api client is inited
+// Run должен быть вызван только после инициализации всех сервисов
 func (w *Worker) Run() error {
 	// Chat api test
 	if err := w.services.Chat.TestConnection(); err != nil {
@@ -40,20 +34,21 @@ func (w *Worker) Run() error {
 	if err := w.services.Parse(w.parseUrl); err != nil {
 		return fmt.Errorf("page parse error:%w", err)
 	}
-	log.Println("web page parsed")
+	log.Println("Web page parsed")
 
 	// Page test
 	if err := w.services.Selenium.TestPage(); err != nil {
 		return fmt.Errorf("page load test error:%w", err)
 	}
-	log.Println("page successfully loaded")
+	log.Println("Page successfully loaded")
 
+	// Maximize window
 	if err := w.services.Selenium.MaximizeWindow(); err != nil {
 		return fmt.Errorf("cannot maximize window:%w", err)
 	}
 
-	// TEMP:
-	if err := w.services.Selenium.Wd().DeleteCookie(".AspNetCore.Cookies"); err != nil {
+	// Delete auth cookie
+	if err := w.services.Selenium.DeleteCookie(".AspNetCore.Cookies"); err != nil {
 		return err
 	}
 
@@ -72,30 +67,16 @@ func (w *Worker) Run() error {
 	//time.Sleep(time.Second * 5)
 	//return nil
 
-	// Solving captcha
+	// Solving first captcha
 	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
 		return fmt.Errorf("click verify error:%w", err)
 	}
 
-	var triesCnt int
-	tryErr := errors.New("")
-	// Если ошибка возникла не из-за неправильного решения капчи, возращаем ее, иначе пробуем еще
-	// TODO: REFACTOR: вынести в отдельную функцию
-	for triesCnt = 1; (triesCnt < processCaptchaMaxTries) && tryErr != nil; triesCnt++ {
-		log.Printf("try №%d to solve the captcha starts ...\n", triesCnt)
-		tryErr = w.processCaptcha()
-		log.Printf("try №%d to solve the captcha ended\n", triesCnt)
-		if errors.As(tryErr, &service.InvalidSelectionError) {
-			fmt.Println("invalid selection")
-			continue
-		}
-		if tryErr != nil {
-			return fmt.Errorf("solve captcha error in %d tries:%w\n", triesCnt, tryErr)
-		}
+	log.Println("Retry process first captcha starts ...")
+	if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
+		return fmt.Errorf("retry process captcha error:%w", err)
 	}
-	if tryErr != nil {
-		return fmt.Errorf("solve captcha error:%w\n", tryErr)
-	}
+	log.Println("Retry process first captcha successfully ended")
 
 	// TODO: сделать ожидание прогрузки
 	time.Sleep(time.Second * 3)
@@ -112,82 +93,26 @@ func (w *Worker) Run() error {
 	if err := w.services.Selenium.BookNew(); err != nil {
 		return fmt.Errorf("book new error:%w", err)
 	}
-
-	log.Println("time to solve second captcha...")
-
+	// or:
 	//if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
 	//	return err
 	//}
 
-	//w.services.Selenium.Wd().Refresh()
-
-	// DEBUG:
-	time.Sleep(time.Second * 5)
-
+	// Solving second captcha
 	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
 		return fmt.Errorf("click verify error:%w", err)
 	}
 
-	tryErr = errors.New("")
-	// TODO: REFACTOR: вынести в отдельную функцию
-	for triesCnt = 1; (triesCnt < processCaptchaMaxTries) && tryErr != nil; triesCnt++ {
-		log.Printf("try №%d to solve the captcha starts ...\n", triesCnt)
-		tryErr = w.processCaptcha()
-		log.Printf("try №%d to solve the captcha ended\n", triesCnt)
-		if errors.As(tryErr, &service.InvalidSelectionError) {
-			fmt.Println("invalid selection")
-			continue
-		}
-		if tryErr != nil {
-			return fmt.Errorf("solve captcha error in %d tries:%w\n", triesCnt, tryErr)
-		}
+	log.Println("Retry process second captcha starts ...")
+	if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
+		return fmt.Errorf("retry process captcha error:%w", err)
 	}
-	if tryErr != nil {
-		return fmt.Errorf("solve captcha error:%w\n", tryErr)
-	}
+	log.Println("Retry process second captcha successfully ended")
 
 	// DEBUG:
 	time.Sleep(time.Second * 10)
 
-	log.Println("work done")
+	log.Println("Work done")
 
 	return nil
-}
-
-func (w *Worker) processCaptcha() error {
-	log.Println("captcha processing start...")
-
-	err := w.saveCaptchaImage(captchaRelativePath)
-	if err != nil {
-		return fmt.Errorf("save captcha image error:%w", err)
-	}
-
-	link, err := w.services.UploadImage(captchaRelativePath)
-	if err != nil {
-		return fmt.Errorf("failed to upload captcha:%w", err)
-	}
-	log.Println("captcha was uploaded, link: ", link)
-
-	resp, err := w.services.Chat.Request4VPreviewWithImage(msg, link)
-	if err != nil {
-		return fmt.Errorf("request to chat api with image url error:%w", err)
-	}
-	cardNums, err := util.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
-	log.Println("cards to select: ", cardNums)
-
-	err = w.services.Selenium.SolveCaptcha(cardNums)
-	if err != nil {
-		return err
-	}
-	log.Println("captcha was sucsessfully processed")
-
-	return nil
-}
-
-func (w *Worker) saveCaptchaImage(relativePath string) error {
-	img, err := w.services.Selenium.PullCaptchaImage()
-	if err != nil {
-		return fmt.Errorf("cannot pull captcha image:%w", err)
-	}
-	return util.WriteFile(util.GetAbsolutePath(relativePath), img)
 }
