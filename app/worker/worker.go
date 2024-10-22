@@ -7,7 +7,7 @@ import (
 	"visasolution/app/service"
 )
 
-const processCaptchaMaxTries = 5
+const processCaptchaMaxTries = 3
 
 const tmpFolder = "tmp/"
 
@@ -48,13 +48,13 @@ func (w *Worker) Run() error {
 	}
 
 	// Delete auth cookie
-	//if err := w.services.Selenium.DeleteCookie(".AspNetCore.Cookies"); err != nil {
-	//	return err
-	//}
+	if err := w.services.Selenium.DeleteCookie(".AspNetCore.Cookies"); err != nil {
+		return err
+	}
 
 	// Solving first captcha
 	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
-		return fmt.Errorf("click verify error:%w", err)
+		return fmt.Errorf("click verify first catpcha error:%w", err)
 	}
 
 	log.Println("Retry process first captcha starts ...")
@@ -70,9 +70,13 @@ func (w *Worker) Run() error {
 	if err := w.services.Selenium.Authorize(); err != nil {
 		return fmt.Errorf("authorization error:%w", err)
 	}
+	log.Println("Authorization successfully")
 
-	// TODO: сделать ожидание прогрузки
-	time.Sleep(time.Second * 3)
+	//TODO: сделать ожидание прогрузки
+	//time.Sleep(time.Second * 6)
+	//if err := w.services.Selenium.waitAndRetry(w.services.Selenium.BookNew); err != nil {
+	//	return fmt.Errorf("wait element and click error:%w", err)
+	//}
 
 	// Book new
 	//if err := w.services.Selenium.BookNew(); err != nil {
@@ -85,8 +89,9 @@ func (w *Worker) Run() error {
 
 	// Solving second captcha
 	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
-		return fmt.Errorf("click verify error:%w", err)
+		return fmt.Errorf("click verify second captcha error:%w", err)
 	}
+	log.Println("Second captcha successfully clicked")
 
 	log.Println("Retry process second captcha starts ...")
 	if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {

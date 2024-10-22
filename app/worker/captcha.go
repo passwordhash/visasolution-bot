@@ -9,7 +9,7 @@ import (
 )
 
 // msg сообщение, которое отправляется в чат
-const msg = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right.”`
+const msg = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right starting with 1.”`
 
 // captchaRelativePath путь к сохраненному изображению капчи
 var captchaRelativePath = tmpFolder + "captcha.png"

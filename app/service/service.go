@@ -10,14 +10,17 @@ type Selenium interface {
 	ConnectWithProxy(url, extansionPath string) error
 	DeleteCookie(key string) error
 	Parse(url string) error
+	MaximizeWindow() error
+
 	Wd() selenium.WebDriver
 	TestPage() error
-	MaximizeWindow() error
+
 	PullCaptchaImage() ([]byte, error)
 	SolveCaptcha(numbers []int) error
 	Authorize() error
 	BookNew() error
 	ClickVerifyBtn() error
+
 	Quit()
 }
 

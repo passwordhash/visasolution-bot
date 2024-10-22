@@ -24,6 +24,8 @@ const (
 	captchaCardImgXPath        = `//*[@id="captcha-main-div"]/div/div[2]/div/img`
 	submitCaptchaXPath         = `//*[@id="captchaForm"]/div[2]/div[3]`
 
+	verifyBtnIdCSSSelector = `#btnVerify`
+
 	formInputsXPath = `/html/body/main/main/div/div/div[2]/div[2]/form/div/input`
 	formSubmitId    = `btnSubmit`
 
@@ -42,27 +44,6 @@ type SeleniumService struct {
 
 func NewSeleniumService(maxTries int, blsEmail string, blsPassword string) *SeleniumService {
 	return &SeleniumService{maxTries: maxTries, blsEmail: blsEmail, blsPassword: blsPassword}
-}
-
-func (s *SeleniumService) Parse(url string) error {
-	return s.wd.Get(url)
-}
-
-func (s *SeleniumService) Wd() selenium.WebDriver {
-	return s.wd
-}
-
-func (s *SeleniumService) TestPage() error {
-	var err error
-
-	// header
-	_, err = s.wd.FindElement(selenium.ByXPATH, `/html/body/header/nav[1]`)
-	// body
-	_, err = s.wd.FindElement(selenium.ByXPATH, `//*[@id="div-main"]`)
-	// footer
-	_, err = s.wd.FindElement(selenium.ByXPATH, `/html/body/footer/div/div[1]/div[1]/h4`)
-
-	return err
 }
 
 // TODO: объединить функции Connect и ConnectWithProxy
@@ -142,6 +123,28 @@ func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath strin
 	return err
 }
 
+func (s *SeleniumService) Parse(url string) error {
+	return s.wd.Get(url)
+}
+
+// TEMP: for easy testing
+func (s *SeleniumService) Wd() selenium.WebDriver {
+	return s.wd
+}
+
+func (s *SeleniumService) TestPage() error {
+	var err error
+
+	// header
+	_, err = s.wd.FindElement(selenium.ByXPATH, `/html/body/header/nav[1]`)
+	// body
+	_, err = s.wd.FindElement(selenium.ByXPATH, `//*[@id="div-main"]`)
+	// footer
+	_, err = s.wd.FindElement(selenium.ByXPATH, `/html/body/footer/div/div[1]/div[1]/h4`)
+
+	return err
+}
+
 func (s *SeleniumService) DeleteCookie(name string) error {
 	return s.wd.DeleteCookie(name)
 }
@@ -160,7 +163,7 @@ func (s *SeleniumService) PullCaptchaImage() ([]byte, error) {
 	// чтобы на скрине было видно содержимое капчи
 	var err error
 
-	iframe, err := s.switchIFrame(selenium.ByXPATH, captchaIFrameXPath)
+	iframe, err := s.waitAndSwitchIFrame(selenium.ByXPATH, captchaIFrameXPath)
 	if err != nil {
 		return []byte{}, fmt.Errorf("switch iframe error:%w", err)
 	}
@@ -187,7 +190,7 @@ func (s *SeleniumService) PullCaptchaImage() ([]byte, error) {
 func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	dragable, err := s.wd.FindElement(selenium.ByCSSSelector, captchaDragableCSSSelector)
 	if err != nil {
-		return err
+		return fmt.Errorf("find element 'dragable' error:%w", err)
 	}
 
 	// Перемещаем капчу в левый верхний угол
@@ -200,16 +203,11 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	}
 
 	// Переключаемся на фрейм капчи
-	_, err = s.switchIFrame(selenium.ByXPATH, captchaIFrameXPath)
+	_, err = s.waitAndSwitchIFrame(selenium.ByXPATH, captchaIFrameXPath)
 	if err != nil {
 		return fmt.Errorf("switch iframe error:%w", err)
 	}
 	defer s.switchToDefault()
-
-	submitBtn, err := s.wd.FindElement(selenium.ByXPATH, submitCaptchaXPath)
-	if err != nil {
-		return err
-	}
 
 	// Получаем размеры карточек
 	cardImg, err := s.wd.FindElement(selenium.ByXPATH, captchaCardImgXPath)
@@ -239,8 +237,8 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 
 	time.Sleep(time.Second * 2)
 
-	if err := submitBtn.Click(); err != nil {
-		return err
+	if err := s.waitAndClickButton(selenium.ByXPATH, submitCaptchaXPath); err != nil {
+		return fmt.Errorf("click submit captcha error:%w", err)
 	}
 	log.Println("submit captcha")
 
@@ -251,7 +249,7 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	defer s.wd.AcceptAlert()
 
 	// DEBUG:
-	fmt.Println("alert text and error: ", text, " ", err)
+	//fmt.Println("alert text and error: ", text, " ", err)
 	// TODO: сделать другую проверка на неправилное решение капчи
 	if strings.Contains(text, invalidSelectionMsg) || err == nil {
 		return InvalidSelectionError
@@ -262,10 +260,6 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 
 func (s *SeleniumService) Authorize() error {
 	formContols, err := s.wd.FindElements(selenium.ByXPATH, formInputsXPath)
-	if err != nil {
-		return err
-	}
-	submit, err := s.wd.FindElement(selenium.ByID, formSubmitId)
 	if err != nil {
 		return err
 	}
@@ -288,29 +282,34 @@ func (s *SeleniumService) Authorize() error {
 		return err
 	}
 
-	time.Sleep(time.Millisecond * 500)
+	// OLD:
+	//time.Sleep(time.Millisecond * 500)
+	//return submit.Click()
 
-	return submit.Click()
-}
-
-func (s *SeleniumService) BookNew() error {
-	err := s.wd.WaitWithTimeoutAndInterval(func(wd selenium.WebDriver) (bool, error) {
-		err := s.clickButton(selenium.ByXPATH, bookNewBtnXPath)
-		return err == nil, err
-	}, waitDuration, time.Second*1)
+	err = s.waitAndClickButton(selenium.ByID, formSubmitId)
 	if err != nil {
-		return fmt.Errorf("click book new btn error:%w", err)
+		return fmt.Errorf("submit click error:%w", err)
 	}
-
-	time.Sleep(time.Second * 3)
 
 	return nil
 }
 
-func (s *SeleniumService) ClickVerifyBtn() error {
-	return s.clickButton(selenium.ByCSSSelector, "#btnVerify")
+// BookNew кликает по кнопке "Book new" на странице. Синхронный метод.
+func (s *SeleniumService) BookNew() error {
+	err := s.waitAndClickButton(selenium.ByXPATH, bookNewBtnXPath)
+	if err != nil {
+		return fmt.Errorf("click book new btn error:%w", err)
+	}
+
+	return nil
 }
 
+// ClickVerifyBtn кликает по кнопке с ожиданием появления элемента. Синхронный метод.
+func (s *SeleniumService) ClickVerifyBtn() error {
+	return s.waitAndClickButton(selenium.ByCSSSelector, verifyBtnIdCSSSelector)
+}
+
+// clickButton кликает по элементу по заданным параметрам
 func (s *SeleniumService) clickButton(byWhat, value string) error {
 	elem, err := s.wd.FindElement(byWhat, value)
 	if err != nil {
@@ -320,41 +319,45 @@ func (s *SeleniumService) clickButton(byWhat, value string) error {
 	return elem.Click()
 }
 
-func (s *SeleniumService) findWithTimeout(byWhat, value string) (selenium.WebElement, error) {
-	var element selenium.WebElement
-	var findErr error
-	err := s.wd.WaitWithTimeout(func(wd selenium.WebDriver) (bool, error) {
-		element, findErr = wd.FindElement(byWhat, value)
-		if findErr != nil {
-			return false, findErr
+// waitAndClickButton ожидает появления элемента и кликает по нему
+func (s *SeleniumService) waitAndClickButton(byWhat, value string) error {
+	var err error
+	maxTries := 10                  // HARD CODED
+	delay := time.Millisecond * 500 // HARD CODED
+	for i := 0; i < maxTries; i++ {
+		err = s.clickButton(byWhat, value)
+		if err == nil {
+			return nil
 		}
-		return true, nil
-	}, waitDuration)
-	return element, err
+		// DEBUG:
+		fmt.Println("wait and click error:", err)
+		time.Sleep(delay)
+	}
+	return fmt.Errorf("max tries exceeded:%w", err)
 }
 
-// TODO: REFACOTR
-func (s *SeleniumService) switchIFrame(byWhat, value string) (selenium.WebElement, error) {
+// waitAndSwitchIFrame ожидает появления элемента и переключается на него
+func (s *SeleniumService) waitAndSwitchIFrame(byWhat, value string) (selenium.WebElement, error) {
 	var iframe selenium.WebElement
 	var err error
-	err = s.wd.WaitWithTimeoutAndInterval(func(wd selenium.WebDriver) (bool, error) {
+	maxTries := 10                  // HARD CODED
+	delay := time.Millisecond * 500 // HARD CODED
+
+	for i := 0; i < maxTries; i++ {
 		iframe, err = s.wd.FindElement(byWhat, value)
-		if err != nil {
-			return false, err
+		if err == nil {
+			err = s.wd.SwitchFrame(iframe)
+			if err == nil {
+				return iframe, nil
+			}
 		}
-		return true, nil
-	}, waitDuration, time.Second*1)
-	if err != nil {
-		return iframe, err
-	}
-	err = s.wd.SwitchFrame(iframe)
-	if err != nil {
-		return iframe, err
+		time.Sleep(delay)
 	}
 
-	return iframe, err
+	return nil, fmt.Errorf("element not found after multiple attempts: %w", err)
 }
 
+// switchToDefault переключается на дефолтный фрейм
 func (s *SeleniumService) switchToDefault() error {
 	return s.wd.SwitchFrame(nil)
 }
