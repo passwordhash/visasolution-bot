@@ -19,6 +19,7 @@ type Selenium interface {
 	SolveCaptcha(numbers []int) error
 	Authorize() error
 	BookNew() error
+	BookNewAppointment() error
 	ClickVerifyBtn() error
 
 	Quit()

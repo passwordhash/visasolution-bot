@@ -8,6 +8,7 @@ import (
 )
 
 //docker run --rm -p=4444:4444 selenium/standalone-chrome
+//docker run --rm -p=4444:4444 --shm-size=2g -v /Users/yaroslav/code/projects/visasolution/volumes:/home/seluser/Downloads selenium/standalone-chrome
 
 // const parseURL = "https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"
 const parseURL = "https://russia.blsspainglobal.com/Global/account/login"

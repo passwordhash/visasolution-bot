@@ -23,11 +23,15 @@ const (
 	captchaCardsContainerXPath = `//*[@id="captcha-main-div"]/div/div[2]`
 	captchaCardImgXPath        = `//*[@id="captcha-main-div"]/div/div[2]/div/img`
 	submitCaptchaXPath         = `//*[@id="captchaForm"]/div[2]/div[3]`
+	submitCaptchaIdCSSSelector = `#btnSubmit`
 
 	verifyBtnIdCSSSelector = `#btnVerify`
 
-	formInputsXPath = `/html/body/main/main/div/div/div[2]/div[2]/form/div/input`
-	formSubmitId    = `btnSubmit`
+	formInputsXPath            = `/html/body/main/main/div/div/div[2]/div[2]/form/div/input`
+	formSubmitId               = `btnSubmit`
+	bookNewAppointmentSubmitId = `btnSubmit`
+	bookNewFormXPath           = `//*[@id="div-main"]/div/div/div[2]/form`
+	bookNewFormControlsXPath   = `//*[@id="div-main"]/div/div/div[2]/form/div`
 
 	bookNewBtnXPath = `//*[@id="tns1-item1"]/div/div/div/div/a`
 )
@@ -304,6 +308,64 @@ func (s *SeleniumService) BookNew() error {
 	return nil
 }
 
+func (s *SeleniumService) BookNewAppointment() error {
+	// DEBUG:
+	time.Sleep(time.Second * 2)
+	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentSubmitId); err != nil {
+		return fmt.Errorf("submit to book new appointment error:%w", err)
+	}
+
+	// Удостоверяемся, что форма для бронирования новой записи загрузилась
+	_, err := s.waitAndFind(selenium.ByXPATH, bookNewFormXPath)
+	if err != nil {
+		return fmt.Errorf("find 'book new' form error:%w", err)
+	}
+
+	// Находим все нефейковые элементы формы
+	formContols, err := s.wd.FindElements(selenium.ByXPATH, bookNewFormControlsXPath)
+	if err != nil {
+		return fmt.Errorf("find 'book new' form controls error:%w", err)
+	}
+
+	log.Printf("len of form: %d\n", len(formContols))
+
+	formContolsDisplayed := make([]selenium.WebElement, 0, len(formContols))
+	// Начинаем с 2 элемента, т.к. первые 2 элемента - это заголовок и текст
+	for _, el := range formContols[2:len(formContols)] {
+		displayed, err := el.IsDisplayed()
+		if err != nil {
+			//DEBUG:
+			fmt.Println("check displayed error: ", err)
+			return fmt.Errorf("check displayed error:%w", err)
+		}
+		if displayed {
+			formContolsDisplayed = append(formContolsDisplayed, el)
+		}
+	}
+
+	log.Printf("len of form displ: %d\n", len(formContols))
+
+	// Заполняем все необходимые поля
+	for i, el := range formContolsDisplayed {
+		log.Printf("ELEMENT %d:\n", i+1)
+		fmt.Println("el: ", el)
+
+		input, err := el.FindElement(selenium.ByTagName, "input")
+		if err != nil {
+			return fmt.Errorf("find input error:%w", err)
+		}
+
+		id, err := input.GetAttribute("id")
+		if err != nil {
+			return fmt.Errorf("get input id error:%w", err)
+		}
+
+		log.Println("id: ", id)
+	}
+
+	return nil
+}
+
 // ClickVerifyBtn кликает по кнопке с ожиданием появления элемента. Синхронный метод.
 func (s *SeleniumService) ClickVerifyBtn() error {
 	return s.waitAndClickButton(selenium.ByCSSSelector, verifyBtnIdCSSSelector)
@@ -317,6 +379,25 @@ func (s *SeleniumService) clickButton(byWhat, value string) error {
 	}
 
 	return elem.Click()
+}
+
+// TODO: refactor all wait funcs
+// waitAndFind ожидает появления элемента и возвращает его
+func (s *SeleniumService) waitAndFind(byWhat, value string) (selenium.WebElement, error) {
+	var element selenium.WebElement
+	var err error
+	maxTries := 10                  // HARD CODED
+	delay := time.Millisecond * 500 // HARD CODED
+
+	for i := 0; i < maxTries; i++ {
+		element, err = s.wd.FindElement(byWhat, value)
+		if err == nil {
+			return element, nil
+		}
+		time.Sleep(delay)
+	}
+
+	return nil, fmt.Errorf("element not found after multiple attempts: %w", err)
 }
 
 // waitAndClickButton ожидает появления элемента и кликает по нему
@@ -340,8 +421,9 @@ func (s *SeleniumService) waitAndClickButton(byWhat, value string) error {
 func (s *SeleniumService) waitAndSwitchIFrame(byWhat, value string) (selenium.WebElement, error) {
 	var iframe selenium.WebElement
 	var err error
-	maxTries := 10                  // HARD CODED
-	delay := time.Millisecond * 500 // HARD CODED
+	maxTries := 10 // HARD CODED
+	//delay := time.Millisecond * 500 // HARD CODED
+	delay := time.Second * 2
 
 	for i := 0; i < maxTries; i++ {
 		iframe, err = s.wd.FindElement(byWhat, value)

@@ -59,7 +59,7 @@ func (w *Worker) Run() error {
 
 	log.Println("Retry process first captcha starts ...")
 	if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
-		return fmt.Errorf("retry process captcha error:%w", err)
+		return fmt.Errorf("retry process first captcha error:%w", err)
 	}
 	log.Println("Retry process first captcha successfully ended")
 
@@ -73,7 +73,7 @@ func (w *Worker) Run() error {
 	log.Println("Authorization successfully")
 
 	// TODO: код до "<<<" надо переписать
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 5)
 
 	//if err := w.services.Wd().Refresh(); err != nil {
 	//	return fmt.Errorf("cannot refresh: %w", w)
@@ -83,7 +83,7 @@ func (w *Worker) Run() error {
 	}
 
 	// DEBUG:
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 20)
 
 	// Book new
 	//if err := w.services.Selenium.BookNew(); err != nil {
@@ -101,14 +101,23 @@ func (w *Worker) Run() error {
 	}
 	log.Println("Second captcha successfully clicked")
 
+	// DEBUG:
+	time.Sleep(time.Second * 5)
+
 	log.Println("Retry process second captcha starts ...")
 	if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
-		return fmt.Errorf("retry process captcha error:%w", err)
+		return fmt.Errorf("retry process second captcha error:%w", err)
 	}
 	log.Println("Retry process second captcha successfully ended")
 
+	// Book new appointment
+	if err := w.services.Selenium.BookNewAppointment(); err != nil {
+		return fmt.Errorf("book new appointment error:%w", err)
+	}
+	log.Println("Book new appointment submit successfully")
+
 	// DEBUG:
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 15)
 
 	log.Println("Work done")
 
