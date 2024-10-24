@@ -52,9 +52,16 @@ func main() {
 		log.Println("Web driver connection error: ", err)
 		return
 	}
-	defer workers.SaveCookies()
 	defer services.Quit()
+	defer workers.SaveCookies()
 	log.Println("Web driver connected")
+
+	// Load cookies
+	err = workers.LoadCookies()
+	if err != nil {
+		log.Println("Cookies load error:", err)
+	}
+	log.Println("Cookies loaded")
 
 	// Run worker
 	err = workers.Run()

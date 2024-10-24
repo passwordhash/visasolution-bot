@@ -153,6 +153,15 @@ func (s *SeleniumService) GetCookies() ([]selenium.Cookie, error) {
 	return s.wd.GetCookies()
 }
 
+func (s *SeleniumService) SetCookies(cookies []selenium.Cookie) error {
+	for _, c := range cookies {
+		if err := s.wd.AddCookie(&c); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *SeleniumService) DeleteCookie(name string) error {
 	return s.wd.DeleteCookie(name)
 }

@@ -3,7 +3,9 @@ package worker
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tebeka/selenium"
 	"log"
+	"os"
 	"time"
 	"visasolution/app/service"
 	"visasolution/app/util"
@@ -15,6 +17,8 @@ const (
 	tmpFolder  = "tmp/"
 	cookieFile = "cookies.json"
 )
+
+var cookiePath = tmpFolder + cookieFile
 
 type Worker struct {
 	services *service.Service
@@ -30,6 +34,13 @@ func NewWorker(services *service.Service, parseUrl string) *Worker {
 
 // Run должен быть вызван только после инициализации всех сервисов
 func (w *Worker) Run() error {
+	if err := w.services.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
+		return err
+	}
+
+	time.Sleep(time.Second * 10)
+
+	return nil
 	// Chat api test
 	if err := w.services.Chat.TestConnection(); err != nil {
 		return fmt.Errorf("chat api connection error:%w", err)
@@ -129,6 +140,7 @@ func (w *Worker) Run() error {
 	return nil
 }
 
+// SaveCookies сохраняет куки в файл. Функция вызывается в defer
 func (w *Worker) SaveCookies() {
 	cookies, err := w.services.Selenium.GetCookies()
 	if err != nil {
@@ -142,11 +154,29 @@ func (w *Worker) SaveCookies() {
 		return
 	}
 
-	cookiePath := tmpFolder + cookieFile
 	if err := util.WriteFile(cookiePath, cookiesJson); err != nil {
 		log.Println("Cannot save cookies:%w", err)
 		return
 	}
 
 	log.Println("Cookies saved")
+}
+
+func (w *Worker) LoadCookies() error {
+	cookiePath := tmpFolder + cookieFile
+	cookiesJson, err := os.ReadFile(cookiePath)
+	if err != nil {
+		return fmt.Errorf("cannot read cookies:%w", err)
+	}
+
+	var cookies []selenium.Cookie
+	if err := json.Unmarshal(cookiesJson, &cookies); err != nil {
+		return fmt.Errorf("cannot unmarshal cookies:%w", err)
+	}
+
+	if err := w.services.Selenium.SetCookies(cookies); err != nil {
+		return fmt.Errorf("cannot set cookies:%w", err)
+	}
+
+	return nil
 }
