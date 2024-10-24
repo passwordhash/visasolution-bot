@@ -8,6 +8,7 @@ import (
 type Selenium interface {
 	Connect(url string) error
 	ConnectWithProxy(url, extansionPath string) error
+	GetCookies() ([]selenium.Cookie, error)
 	DeleteCookie(key string) error
 	Parse(url string) error
 	MaximizeWindow() error

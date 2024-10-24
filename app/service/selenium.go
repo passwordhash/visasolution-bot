@@ -149,6 +149,10 @@ func (s *SeleniumService) TestPage() error {
 	return err
 }
 
+func (s *SeleniumService) GetCookies() ([]selenium.Cookie, error) {
+	return s.wd.GetCookies()
+}
+
 func (s *SeleniumService) DeleteCookie(name string) error {
 	return s.wd.DeleteCookie(name)
 }

@@ -1,15 +1,20 @@
 package worker
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 	"visasolution/app/service"
+	"visasolution/app/util"
 )
 
 const processCaptchaMaxTries = 3
 
-const tmpFolder = "tmp/"
+const (
+	tmpFolder  = "tmp/"
+	cookieFile = "cookies.json"
+)
 
 type Worker struct {
 	services *service.Service
@@ -122,4 +127,26 @@ func (w *Worker) Run() error {
 	log.Println("Work done")
 
 	return nil
+}
+
+func (w *Worker) SaveCookies() {
+	cookies, err := w.services.Selenium.GetCookies()
+	if err != nil {
+		log.Println("Cannot get cookies:%w", err)
+		return
+	}
+
+	cookiesJson, err := json.Marshal(cookies)
+	if err != nil {
+		log.Println("Cannot marshal cookies:%w", err)
+		return
+	}
+
+	cookiePath := tmpFolder + cookieFile
+	if err := util.WriteFile(cookiePath, cookiesJson); err != nil {
+		log.Println("Cannot save cookies:%w", err)
+		return
+	}
+
+	log.Println("Cookies saved")
 }
