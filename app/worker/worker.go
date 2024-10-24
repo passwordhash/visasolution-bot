@@ -34,13 +34,13 @@ func NewWorker(services *service.Service, parseUrl string) *Worker {
 
 // Run должен быть вызван только после инициализации всех сервисов
 func (w *Worker) Run() error {
-	if err := w.services.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
-		return err
-	}
+	//if err := w.services.Wd().Get("https://russia.blsspainglobal.com"); err != nil {
+	//	return err
+	//}
+	//
+	//time.Sleep(time.Second * 10)
 
-	time.Sleep(time.Second * 10)
-
-	return nil
+	//return nil
 	// Chat api test
 	if err := w.services.Chat.TestConnection(); err != nil {
 		return fmt.Errorf("chat api connection error:%w", err)
@@ -63,9 +63,13 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("cannot maximize window:%w", err)
 	}
 
-	// Delete auth cookie
-	if err := w.services.Selenium.DeleteCookie(".AspNetCore.Cookies"); err != nil {
-		return err
+	//Delete auth cookie
+	//if err := w.services.Selenium.DeleteCookie(".AspNetCore.Cookies"); err != nil {
+	//	return err
+	//}
+	// Load cookies
+	if err := w.LoadCookies(); err != nil {
+		log.Println("Cookies load error:", err)
 	}
 
 	// Solving first captcha
@@ -87,6 +91,9 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("authorization error:%w", err)
 	}
 	log.Println("Authorization successfully")
+
+	// DEBUG:
+	return nil
 
 	// TODO: код до "<<<" надо переписать
 	time.Sleep(time.Second * 5)
@@ -178,5 +185,5 @@ func (w *Worker) LoadCookies() error {
 		return fmt.Errorf("cannot set cookies:%w", err)
 	}
 
-	return nil
+	return w.services.Selenium.Refresh()
 }

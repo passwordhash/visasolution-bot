@@ -13,6 +13,7 @@ type Selenium interface {
 	DeleteCookie(key string) error
 	Parse(url string) error
 	MaximizeWindow() error
+	Refresh() error
 
 	Wd() selenium.WebDriver
 	TestPage() error

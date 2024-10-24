@@ -155,6 +155,7 @@ func (s *SeleniumService) GetCookies() ([]selenium.Cookie, error) {
 
 func (s *SeleniumService) SetCookies(cookies []selenium.Cookie) error {
 	for _, c := range cookies {
+
 		if err := s.wd.AddCookie(&c); err != nil {
 			return err
 		}
@@ -168,6 +169,10 @@ func (s *SeleniumService) DeleteCookie(name string) error {
 
 func (s *SeleniumService) MaximizeWindow() error {
 	return s.wd.MaximizeWindow("")
+}
+
+func (s *SeleniumService) Refresh() error {
+	return s.wd.Refresh()
 }
 
 func (s *SeleniumService) Quit() {
