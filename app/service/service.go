@@ -13,10 +13,14 @@ type Selenium interface {
 	DeleteCookie(key string) error
 	Parse(url string) error
 	MaximizeWindow() error
+
+	GoTo(url string) error
 	Refresh() error
 
 	Wd() selenium.WebDriver
 	TestPage() error
+
+	IsAuthorized(baseURL string) (bool, error)
 
 	PullCaptchaImage() ([]byte, error)
 	SolveCaptcha(numbers []int) error
@@ -47,6 +51,8 @@ type Service struct {
 }
 
 type Deps struct {
+	BaseURL string
+
 	MaxTries int
 
 	BlsEmail    string

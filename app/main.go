@@ -10,8 +10,12 @@ import (
 //docker run --rm -p=4444:4444 selenium/standalone-chrome
 //docker run --rm -p=4444:4444 --shm-size=2g -v /Users/yaroslav/code/projects/visasolution/volumes:/home/seluser/Downloads selenium/standalone-chrome
 
-// const parseURL = "https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"
-const parseURL = "https://russia.blsspainglobal.com/Global/account/login"
+// const loginURL = "https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"
+const (
+	baseURL                 = "https://russia.blsspainglobal.com/"
+	loginURL                = "Global/account/login"
+	visaTypeVerificationURL = "Global/bls/VisaTypeVerification"
+)
 const maxTries = 10
 
 func main() {
@@ -22,6 +26,7 @@ func main() {
 	}
 
 	services := service.NewService(service.Deps{
+		BaseURL:           baseURL,
 		MaxTries:          maxTries,
 		BlsEmail:          config.BlsEmail,
 		BlsPassword:       config.BlsPassword,
@@ -29,7 +34,7 @@ func main() {
 		ImgurClientId:     config.ImgurClientId,
 		ImgurClientSecret: config.ImgurClientSecret,
 	})
-	workers := worker.NewWorker(services, parseURL)
+	workers := worker.NewWorker(services, baseURL, visaTypeVerificationURL)
 
 	// TODO: client imgur
 
@@ -53,7 +58,7 @@ func main() {
 		return
 	}
 	defer services.Quit()
-	//defer workers.SaveCookies()
+	defer workers.SaveCookies()
 	log.Println("Web driver connected")
 
 	// Run worker

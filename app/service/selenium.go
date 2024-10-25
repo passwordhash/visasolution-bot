@@ -39,9 +39,7 @@ const (
 type SeleniumService struct {
 	wd selenium.WebDriver
 
-	maxTries int
-	parseUrl string
-
+	maxTries    int
 	blsEmail    string
 	blsPassword string
 }
@@ -149,13 +147,29 @@ func (s *SeleniumService) TestPage() error {
 	return err
 }
 
+// GoTo переходит на страницу по url
+func (s *SeleniumService) GoTo(url string) error {
+	return s.wd.Get(url)
+}
+
+// IsAuthorized проверяет авторизован ли пользователь, но только для одной конкретной страницы - проверка по URL - VisaTypeVerification
+func (s *SeleniumService) IsAuthorized(baseURL string) (bool, error) {
+	curURL, err := s.wd.CurrentURL()
+	log.Println("cur url: ", curURL)
+	log.Println("parse url: ", baseURL)
+	if err != nil {
+		return false, err
+	}
+
+	return curURL == baseURL, nil
+}
+
 func (s *SeleniumService) GetCookies() ([]selenium.Cookie, error) {
 	return s.wd.GetCookies()
 }
 
 func (s *SeleniumService) SetCookies(cookies []selenium.Cookie) error {
 	for _, c := range cookies {
-
 		if err := s.wd.AddCookie(&c); err != nil {
 			return err
 		}

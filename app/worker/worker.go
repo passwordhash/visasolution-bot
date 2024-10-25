@@ -21,86 +21,85 @@ const (
 var cookiePath = tmpFolder + cookieFile
 
 type Worker struct {
-	services *service.Service
-	parseUrl string
+	services    *service.Service
+	baseURL     string
+	visaTypeURL string
 }
 
-func NewWorker(services *service.Service, parseUrl string) *Worker {
+func NewWorker(services *service.Service, parseUrl, visaTypeUrl string) *Worker {
 	return &Worker{
-		services: services,
-		parseUrl: parseUrl,
+		services:    services,
+		baseURL:     parseUrl,
+		visaTypeURL: visaTypeUrl,
 	}
 }
 
 // Run должен быть вызван только после инициализации всех сервисов
 func (w *Worker) Run() error {
-	//if err := w.services.Wd().Get("https://russia.blsspainglobal.com"); err != nil {
-	//	return err
-	//}
-	//
-	//time.Sleep(time.Second * 10)
-
-	//return nil
 	// Chat api test
-	if err := w.services.Chat.TestConnection(); err != nil {
-		return fmt.Errorf("chat api connection error:%w", err)
-	}
+	// COMMENTED FOR DEV
+	//if err := w.services.Chat.TestConnection(); err != nil {
+	//	return fmt.Errorf("chat api connection error:%w", err)
+	//}
 
 	// Selenium parse page
-	if err := w.services.Parse(w.parseUrl); err != nil {
+	if err := w.services.Parse(w.baseURL); err != nil {
 		return fmt.Errorf("page parse error:%w", err)
 	}
 	log.Println("Web page parsed")
 
 	// Page test
-	if err := w.services.Selenium.TestPage(); err != nil {
-		return fmt.Errorf("page load test error:%w", err)
-	}
-	log.Println("Page successfully loaded")
+	// COMMENTED FOR DEV
+	//if err := w.services.Selenium.TestPage(); err != nil {
+	//	return fmt.Errorf("page load test error:%w", err)
+	//}
+	//log.Println("Page successfully loaded")
 
 	// Maximize window
-	if err := w.services.Selenium.MaximizeWindow(); err != nil {
-		return fmt.Errorf("cannot maximize window:%w", err)
-	}
-
-	//Delete auth cookie
-	//if err := w.services.Selenium.DeleteCookie(".AspNetCore.Cookies"); err != nil {
-	//	return err
+	// COMMENTED FOR DEV
+	//if err := w.services.Selenium.MaximizeWindow(); err != nil {
+	//	return fmt.Errorf("cannot maximize window:%w", err)
 	//}
+
 	// Load cookies
 	if err := w.LoadCookies(); err != nil {
 		log.Println("Cookies load error:", err)
 	}
 
-	// Solving first captcha
-	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
-		return fmt.Errorf("click verify first catpcha error:%w", err)
+	// Go to visa type verification page
+	if err := w.services.Selenium.GoTo(w.baseURL + w.visaTypeURL); err != nil {
+		return fmt.Errorf("go to visa type verification page error:%w", err)
 	}
 
-	log.Println("Retry process first captcha starts ...")
-	if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
-		return fmt.Errorf("retry process first captcha error:%w", err)
+	isAuthorized, _ := w.services.Selenium.IsAuthorized(w.baseURL)
+	if !isAuthorized {
+		// Solving first captcha
+		if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
+			return fmt.Errorf("click verify first catpcha error:%w", err)
+		}
+
+		log.Println("Retry process first captcha starts ...")
+		if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
+			return fmt.Errorf("retry process first captcha error:%w", err)
+		}
+		log.Println("Retry process first captcha successfully ended")
+
+		// TODO: сделать ожидание прогрузки
+		time.Sleep(time.Second * 3)
+
+		// Authorization
+		if err := w.services.Selenium.Authorize(); err != nil {
+			return fmt.Errorf("authorization error:%w", err)
+		}
+		log.Println("Authorization successfully")
+	} else {
+		log.Println("Already authorized. Skip authorization")
 	}
-	log.Println("Retry process first captcha successfully ended")
-
-	// TODO: сделать ожидание прогрузки
-	time.Sleep(time.Second * 3)
-
-	// Authorization
-	if err := w.services.Selenium.Authorize(); err != nil {
-		return fmt.Errorf("authorization error:%w", err)
-	}
-	log.Println("Authorization successfully")
-
-	// DEBUG:
-	return nil
 
 	// TODO: код до "<<<" надо переписать
+	//DEBUG:
 	time.Sleep(time.Second * 5)
 
-	//if err := w.services.Wd().Refresh(); err != nil {
-	//	return fmt.Errorf("cannot refresh: %w", w)
-	//}
 	if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
 		return err
 	}
@@ -111,10 +110,6 @@ func (w *Worker) Run() error {
 	// Book new
 	//if err := w.services.Selenium.BookNew(); err != nil {
 	//	return fmt.Errorf("book new error:%w", err)
-	//}
-	// or:
-	//if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
-	//	return err
 	//}
 	// TODO: <<<
 
@@ -147,6 +142,27 @@ func (w *Worker) Run() error {
 	return nil
 }
 
+func (w *Worker) LoadCookies() error {
+	cookiePath := tmpFolder + cookieFile
+	cookiesJson, err := os.ReadFile(cookiePath)
+	if err != nil {
+		return fmt.Errorf("cannot read cookies:%w", err)
+	}
+
+	var cookies []selenium.Cookie
+	if err := json.Unmarshal(cookiesJson, &cookies); err != nil {
+		return fmt.Errorf("cannot unmarshal cookies:%w", err)
+	}
+
+	if err := w.services.Selenium.SetCookies(cookies); err != nil {
+		return fmt.Errorf("cannot set cookies:%w", err)
+	}
+
+	log.Println("loaded cookies: ", cookies)
+
+	return w.services.Selenium.Refresh()
+}
+
 // SaveCookies сохраняет куки в файл. Функция вызывается в defer
 func (w *Worker) SaveCookies() {
 	cookies, err := w.services.Selenium.GetCookies()
@@ -167,23 +183,4 @@ func (w *Worker) SaveCookies() {
 	}
 
 	log.Println("Cookies saved")
-}
-
-func (w *Worker) LoadCookies() error {
-	cookiePath := tmpFolder + cookieFile
-	cookiesJson, err := os.ReadFile(cookiePath)
-	if err != nil {
-		return fmt.Errorf("cannot read cookies:%w", err)
-	}
-
-	var cookies []selenium.Cookie
-	if err := json.Unmarshal(cookiesJson, &cookies); err != nil {
-		return fmt.Errorf("cannot unmarshal cookies:%w", err)
-	}
-
-	if err := w.services.Selenium.SetCookies(cookies); err != nil {
-		return fmt.Errorf("cannot set cookies:%w", err)
-	}
-
-	return w.services.Selenium.Refresh()
 }
