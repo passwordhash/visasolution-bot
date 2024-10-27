@@ -32,9 +32,13 @@ const (
 	bookNewAppointmentSubmitId = `btnSubmit`
 	bookNewFormXPath           = `//*[@id="div-main"]/div/div/div[2]/form`
 	bookNewFormControlsXPath   = `//*[@id="div-main"]/div/div/div[2]/form/div`
+	appointmentForId           = `self`
 
 	bookNewBtnXPath = `//*[@id="tns1-item1"]/div/div/div/div/a`
 )
+
+// Количество табов до первого input'а в форме Book New Appointment
+const tabsCountToFirstInput = 14
 
 type SeleniumService struct {
 	wd selenium.WebDriver
@@ -364,11 +368,10 @@ func (s *SeleniumService) BookNewAppointment() error {
 
 	formContolsDisplayed := make([]selenium.WebElement, 0)
 	// Начинаем с 2 элемента, т.к. первые 2 элемента - это заголовок и текст
-	for _, el := range formContols[2:len(formContols)] {
+	// Проходим по всем элементам формы и проверяем их видимость
+	for _, el := range formContols[2:] {
 		displayed, err := el.IsDisplayed()
 		if err != nil {
-			//DEBUG:
-			fmt.Println("check displayed error: ", err)
 			return fmt.Errorf("check displayed error:%w", err)
 		}
 		if displayed {
@@ -376,17 +379,19 @@ func (s *SeleniumService) BookNewAppointment() error {
 		}
 	}
 
+	// DEBUG:
 	log.Printf("len of form displ: %d\n", len(formContolsDisplayed))
 
-	for i := 0; i < 14; i++ {
+	// Переходим к первому полю формы
+	for i := 0; i < tabsCountToFirstInput; i++ {
 		if err := s.wd.KeyDown(selenium.TabKey); err != nil {
-			fmt.Println(i, " press tab error: ", err)
+			return fmt.Errorf("press tab error:%w", err)
 		}
 	}
 
+	// Проходим по всем видимым полям формы и заполняем их
 	for i, el := range formContolsDisplayed {
 		// DEBUG:
-		time.Sleep(time.Second * 5)
 		log.Printf("ELEMENT %d:\n", i+1)
 
 		input, err := el.FindElement(selenium.ByTagName, "input")
@@ -399,39 +404,23 @@ func (s *SeleniumService) BookNewAppointment() error {
 			return fmt.Errorf("get input id error:%w", err)
 		}
 
+		// DEBUG:
 		log.Println("id: ", id)
 
-		if strings.Contains(id, "self") {
+		// Пропускаем поле "Appointment for", т.к. оно заполняется автоматически
+		if strings.Contains(id, appointmentForId) {
 			if err := s.wd.KeyDown(selenium.TabKey); err != nil {
-				fmt.Println(i, "el press tab error: ", err)
+				return fmt.Errorf("press tab error:%w", err)
 			}
 			continue
 		}
-
-		span, err := el.FindElement(selenium.ByTagName, "span")
-		if err != nil {
-			fmt.Println("span get err: ", err)
-		}
-
-		spanClass, err := span.GetAttribute("class")
-		if err != nil {
-			return fmt.Errorf("get span class error:%w", err)
-		}
-		log.Println("span class: ", spanClass)
-
-		//err = span.Click()
-		//if err != nil {
-		//	fmt.Println("span click err:", err)
-		//	continue
-		//}
-		//fmt.Println("span clicked!")
 
 		// DEBUG:
 		time.Sleep(time.Second * 3)
 
 		err = s.wd.KeyDown(selenium.DownArrowKey)
 		if err != nil {
-			fmt.Println("key down err:", err)
+			log.Println(i, " el press arrow down error: ", err)
 			continue
 		}
 		fmt.Println("arrow downed")
@@ -439,44 +428,15 @@ func (s *SeleniumService) BookNewAppointment() error {
 		// DEBUG:
 		time.Sleep(time.Second * 3)
 
-		//err = s.clickByCoords(100, 500)
-		//if err != nil {
-		//	fmt.Println("click by coords err: ", err)
-		//	continue
-		//}
-
-		//err = s.wd.KeyDown(selenium.EnterKey)
-		//if err != nil {
-		//	fmt.Println("key up err:", err)
-		//}
-		//fmt.Println("enter pressed")
-
 		if err := s.wd.KeyDown(selenium.TabKey); err != nil {
-			fmt.Println(i, "el press tab error: ", err)
+			log.Println(i, " el press tab error: ", err)
 		}
+		log.Println("tab pressed")
 
 		// DEBUG:
 		time.Sleep(time.Second * 3)
 
 	}
-
-	//// Заполняем все необходимые поля
-	//for i, el := range formContolsDisplayed {
-	//	log.Printf("ELEMENT %d:\n", i+1)
-	//	//log.Println("el: ", el)
-	//
-	//	input, err := el.FindElement(selenium.ByTagName, "input")
-	//	if err != nil {
-	//		return fmt.Errorf("find input error:%w", err)
-	//	}
-	//
-	//	id, err := input.GetAttribute("id")
-	//	if err != nil {
-	//		return fmt.Errorf("get input id error:%w", err)
-	//	}
-	//
-	//	log.Println("id: ", id)
-	//}
 
 	return nil
 }
@@ -497,6 +457,7 @@ func (s *SeleniumService) clickButton(byWhat, value string) error {
 }
 
 // TODO: refactor all wait funcs
+
 // waitAndFind ожидает появления элемента и возвращает его
 func (s *SeleniumService) waitAndFind(byWhat, value string) (selenium.WebElement, error) {
 	var element selenium.WebElement
