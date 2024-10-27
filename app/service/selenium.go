@@ -153,15 +153,13 @@ func (s *SeleniumService) GoTo(url string) error {
 }
 
 // IsAuthorized проверяет авторизован ли пользователь, но только для одной конкретной страницы - проверка по URL - VisaTypeVerification
-func (s *SeleniumService) IsAuthorized(baseURL string) (bool, error) {
+func (s *SeleniumService) IsAuthorized(neededURL string) (bool, error) {
 	curURL, err := s.wd.CurrentURL()
-	log.Println("cur url: ", curURL)
-	log.Println("parse url: ", baseURL)
 	if err != nil {
 		return false, err
 	}
 
-	return curURL == baseURL, nil
+	return curURL == neededURL, nil
 }
 
 func (s *SeleniumService) GetCookies() ([]selenium.Cookie, error) {
@@ -353,6 +351,9 @@ func (s *SeleniumService) BookNewAppointment() error {
 		return fmt.Errorf("find 'book new' form error:%w", err)
 	}
 
+	// DEBUG:
+	time.Sleep(time.Second * 3)
+
 	// Находим все нефейковые элементы формы
 	formContols, err := s.wd.FindElements(selenium.ByXPATH, bookNewFormControlsXPath)
 	if err != nil {
@@ -361,7 +362,7 @@ func (s *SeleniumService) BookNewAppointment() error {
 
 	log.Printf("len of form: %d\n", len(formContols))
 
-	formContolsDisplayed := make([]selenium.WebElement, 0, len(formContols))
+	formContolsDisplayed := make([]selenium.WebElement, 0)
 	// Начинаем с 2 элемента, т.к. первые 2 элемента - это заголовок и текст
 	for _, el := range formContols[2:len(formContols)] {
 		displayed, err := el.IsDisplayed()
@@ -375,12 +376,18 @@ func (s *SeleniumService) BookNewAppointment() error {
 		}
 	}
 
-	log.Printf("len of form displ: %d\n", len(formContols))
+	log.Printf("len of form displ: %d\n", len(formContolsDisplayed))
 
-	// Заполняем все необходимые поля
+	for i := 0; i < 14; i++ {
+		if err := s.wd.KeyDown(selenium.TabKey); err != nil {
+			fmt.Println(i, " press tab error: ", err)
+		}
+	}
+
 	for i, el := range formContolsDisplayed {
+		// DEBUG:
+		time.Sleep(time.Second * 5)
 		log.Printf("ELEMENT %d:\n", i+1)
-		fmt.Println("el: ", el)
 
 		input, err := el.FindElement(selenium.ByTagName, "input")
 		if err != nil {
@@ -393,7 +400,83 @@ func (s *SeleniumService) BookNewAppointment() error {
 		}
 
 		log.Println("id: ", id)
+
+		if strings.Contains(id, "self") {
+			if err := s.wd.KeyDown(selenium.TabKey); err != nil {
+				fmt.Println(i, "el press tab error: ", err)
+			}
+			continue
+		}
+
+		span, err := el.FindElement(selenium.ByTagName, "span")
+		if err != nil {
+			fmt.Println("span get err: ", err)
+		}
+
+		spanClass, err := span.GetAttribute("class")
+		if err != nil {
+			return fmt.Errorf("get span class error:%w", err)
+		}
+		log.Println("span class: ", spanClass)
+
+		//err = span.Click()
+		//if err != nil {
+		//	fmt.Println("span click err:", err)
+		//	continue
+		//}
+		//fmt.Println("span clicked!")
+
+		// DEBUG:
+		time.Sleep(time.Second * 3)
+
+		err = s.wd.KeyDown(selenium.DownArrowKey)
+		if err != nil {
+			fmt.Println("key down err:", err)
+			continue
+		}
+		fmt.Println("arrow downed")
+
+		// DEBUG:
+		time.Sleep(time.Second * 3)
+
+		//err = s.clickByCoords(100, 500)
+		//if err != nil {
+		//	fmt.Println("click by coords err: ", err)
+		//	continue
+		//}
+
+		//err = s.wd.KeyDown(selenium.EnterKey)
+		//if err != nil {
+		//	fmt.Println("key up err:", err)
+		//}
+		//fmt.Println("enter pressed")
+
+		if err := s.wd.KeyDown(selenium.TabKey); err != nil {
+			fmt.Println(i, "el press tab error: ", err)
+		}
+
+		// DEBUG:
+		time.Sleep(time.Second * 3)
+
 	}
+
+	//// Заполняем все необходимые поля
+	//for i, el := range formContolsDisplayed {
+	//	log.Printf("ELEMENT %d:\n", i+1)
+	//	//log.Println("el: ", el)
+	//
+	//	input, err := el.FindElement(selenium.ByTagName, "input")
+	//	if err != nil {
+	//		return fmt.Errorf("find input error:%w", err)
+	//	}
+	//
+	//	id, err := input.GetAttribute("id")
+	//	if err != nil {
+	//		return fmt.Errorf("get input id error:%w", err)
+	//	}
+	//
+	//	log.Println("id: ", id)
+	//}
 
 	return nil
 }

@@ -20,7 +20,7 @@ type Selenium interface {
 	Wd() selenium.WebDriver
 	TestPage() error
 
-	IsAuthorized(baseURL string) (bool, error)
+	IsAuthorized(neededURLPath string) (bool, error)
 
 	PullCaptchaImage() ([]byte, error)
 	SolveCaptcha(numbers []int) error
