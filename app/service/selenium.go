@@ -29,6 +29,7 @@ const (
 
 	formInputsXPath            = `/html/body/main/main/div/div/div[2]/div[2]/form/div/input`
 	formSubmitId               = `btnSubmit`
+	bookNewAppointmentId       = `btnSubmit`
 	bookNewAppointmentSubmitId = `btnSubmit`
 	bookNewFormXPath           = `//*[@id="div-main"]/div/div/div[2]/form`
 	bookNewFormControlsXPath   = `//*[@id="div-main"]/div/div/div[2]/form/div`
@@ -39,6 +40,17 @@ const (
 
 // Количество табов до первого input'а в форме Book New Appointment
 const tabsCountToFirstInput = 14
+
+// Нужное количество нажатий на стрелку вниз для выбора каждого элемента формы по id. -1 означает, что элемент не нужно выбирать
+var inputKeyDownCounts = map[string]int{
+	"self":                  -1,
+	"ApplicantsNo":          -1,
+	"JurisdictionId":        1,
+	"loc":                   2,
+	"VisaType":              1,
+	"VisaSubType":           9,
+	"AppointmentCategoryId": 1,
+}
 
 type SeleniumService struct {
 	wd selenium.WebDriver
@@ -343,99 +355,67 @@ func (s *SeleniumService) BookNew() error {
 }
 
 func (s *SeleniumService) BookNewAppointment() error {
-	// DEBUG:
-	time.Sleep(time.Second * 2)
-	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentSubmitId); err != nil {
-		return fmt.Errorf("submit to book new appointment error:%w", err)
+	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentId); err != nil {
+		return fmt.Errorf("submit to book new appointment error: %w", err)
 	}
 
-	// Удостоверяемся, что форма для бронирования новой записи загрузилась
-	_, err := s.waitAndFind(selenium.ByXPATH, bookNewFormXPath)
-	if err != nil {
-		return fmt.Errorf("find 'book new' form error:%w", err)
+	if _, err := s.waitAndFind(selenium.ByXPATH, bookNewFormXPath); err != nil {
+		return fmt.Errorf("find 'book new' form error: %w", err)
 	}
 
-	// DEBUG:
+	// TODO: сделать ожидание появления элементов формы
 	time.Sleep(time.Second * 3)
 
-	// Находим все нефейковые элементы формы
-	formContols, err := s.wd.FindElements(selenium.ByXPATH, bookNewFormControlsXPath)
+	formControlsDisplayed, err := s.getDisplayedFormControls()
 	if err != nil {
-		return fmt.Errorf("find 'book new' form controls error:%w", err)
+		return fmt.Errorf("get displayed form control items error: %w", err)
 	}
 
-	log.Printf("len of form: %d\n", len(formContols))
-
-	formContolsDisplayed := make([]selenium.WebElement, 0)
-	// Начинаем с 2 элемента, т.к. первые 2 элемента - это заголовок и текст
-	// Проходим по всем элементам формы и проверяем их видимость
-	for _, el := range formContols[2:] {
-		displayed, err := el.IsDisplayed()
-		if err != nil {
-			return fmt.Errorf("check displayed error:%w", err)
-		}
-		if displayed {
-			formContolsDisplayed = append(formContolsDisplayed, el)
-		}
+	if err := s.keyDownFor(tabsCountToFirstInput, selenium.TabKey); err != nil {
+		return fmt.Errorf("move to first input error: %w", err)
 	}
 
-	// DEBUG:
-	log.Printf("len of form displ: %d\n", len(formContolsDisplayed))
-
-	// Переходим к первому полю формы
-	for i := 0; i < tabsCountToFirstInput; i++ {
-		if err := s.wd.KeyDown(selenium.TabKey); err != nil {
-			return fmt.Errorf("press tab error:%w", err)
-		}
-	}
-
-	// Проходим по всем видимым полям формы и заполняем их
-	for i, el := range formContolsDisplayed {
+	for i, el := range formControlsDisplayed {
 		// DEBUG:
-		log.Printf("ELEMENT %d:\n", i+1)
+		time.Sleep(time.Second * 3)
 
 		input, err := el.FindElement(selenium.ByTagName, "input")
 		if err != nil {
-			return fmt.Errorf("find input error:%w", err)
+			fmt.Println("cannot find input children of displayed controls: %w", err)
+			continue
 		}
 
 		id, err := input.GetAttribute("id")
 		if err != nil {
-			return fmt.Errorf("get input id error:%w", err)
+			return fmt.Errorf("get input id error: %w", err)
 		}
-
-		// DEBUG:
-		log.Println("id: ", id)
-
-		// Пропускаем поле "Appointment for", т.к. оно заполняется автоматически
-		if strings.Contains(id, appointmentForId) {
-			if err := s.wd.KeyDown(selenium.TabKey); err != nil {
-				return fmt.Errorf("press tab error:%w", err)
-			}
+		// HARD CODED:
+		if strings.Contains(id, "ApplicantsNo") {
 			continue
 		}
 
-		// DEBUG:
-		time.Sleep(time.Second * 3)
+		sanitizedId := util.WithoutDigits(id)
 
-		err = s.wd.KeyDown(selenium.DownArrowKey)
-		if err != nil {
-			log.Println(i, " el press arrow down error: ", err)
-			continue
+		fmt.Printf("ELEMENT %d by id '%s' ", i+1, sanitizedId)
+
+		keyDownCount := inputKeyDownCounts[sanitizedId]
+		if err := s.keyDownFor(keyDownCount, selenium.DownArrowKey); err != nil {
+			return fmt.Errorf("press arrow down error: %w", err)
 		}
-		fmt.Println("arrow downed")
 
 		// DEBUG:
-		time.Sleep(time.Second * 3)
+		fmt.Println("arrow down times ", keyDownCount)
 
 		if err := s.wd.KeyDown(selenium.TabKey); err != nil {
-			log.Println(i, " el press tab error: ", err)
+			return fmt.Errorf("press tabkey down error: %w", err)
 		}
-		log.Println("tab pressed")
 
 		// DEBUG:
-		time.Sleep(time.Second * 3)
+		log.Println("tab pressed")
+	}
 
+	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentSubmitId); err != nil {
+		return fmt.Errorf("submit book new appointment form error: %w", err)
 	}
 
 	return nil
@@ -456,8 +436,6 @@ func (s *SeleniumService) clickButton(byWhat, value string) error {
 	return elem.Click()
 }
 
-// TODO: refactor all wait funcs
-
 // waitAndFind ожидает появления элемента и возвращает его
 func (s *SeleniumService) waitAndFind(byWhat, value string) (selenium.WebElement, error) {
 	var element selenium.WebElement
@@ -475,6 +453,8 @@ func (s *SeleniumService) waitAndFind(byWhat, value string) (selenium.WebElement
 
 	return nil, fmt.Errorf("element not found after multiple attempts: %w", err)
 }
+
+// TODO: refactor all wait funcs
 
 // waitAndClickButton ожидает появления элемента и кликает по нему
 func (s *SeleniumService) waitAndClickButton(byWhat, value string) error {
@@ -569,6 +549,44 @@ func (s *SeleniumService) clickByCoords(x, y int) error {
 `
 	_, err := s.wd.ExecuteScript(script, []interface{}{x, y})
 	return err
+}
+
+// keyDownFor нажимает клавишу times раз
+func (s *SeleniumService) keyDownFor(times int, key string) error {
+	for i := 0; i < times; i++ {
+		if err := s.wd.KeyDown(key); err != nil {
+			return err
+		}
+		fmt.Println("key downed")
+	}
+	return nil
+}
+
+// getDisplayedFormControls возвращает только отображаемые элементы формы. Только для страницы Book New Appointment
+func (s *SeleniumService) getDisplayedFormControls() ([]selenium.WebElement, error) {
+	formControls, err := s.wd.FindElements(selenium.ByXPATH, bookNewFormControlsXPath)
+	if err != nil {
+		return nil, fmt.Errorf("find 'book new' form controls error: %w", err)
+	}
+
+	// DEBUG:
+	log.Printf("len of form: %d\n", len(formControls))
+
+	formControlsDisplayed := make([]selenium.WebElement, 0)
+	for _, el := range formControls[2:] {
+		displayed, err := el.IsDisplayed()
+		if err != nil {
+			return nil, fmt.Errorf("check displayed error: %w", err)
+		}
+		if displayed {
+			formControlsDisplayed = append(formControlsDisplayed, el)
+		}
+	}
+
+	// DEBUG:
+	log.Printf("len of form displayed: %d\n", len(formControlsDisplayed))
+
+	return formControlsDisplayed, nil
 }
 
 func getCardCoordinates(cardNum, cardWidth, cardHeight int) (int, int) {

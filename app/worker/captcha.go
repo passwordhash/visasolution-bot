@@ -8,8 +8,10 @@ import (
 	"visasolution/app/util"
 )
 
+const processCaptchaMaxTries = 2
+
 // msg сообщение, которое отправляется в чат
-const msg = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right starting with 1.”`
+const msg = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right starting with 1.Take your time when choosing cards. The wrong decision is costly ”`
 
 // captchaRelativePath путь к сохраненному изображению капчи
 var captchaRelativePath = tmpFolder + "captcha.png"

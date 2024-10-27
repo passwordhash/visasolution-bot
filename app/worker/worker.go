@@ -11,8 +11,6 @@ import (
 	"visasolution/app/util"
 )
 
-const processCaptchaMaxTries = 3
-
 const (
 	tmpFolder  = "tmp/"
 	cookieFile = "cookies.json"

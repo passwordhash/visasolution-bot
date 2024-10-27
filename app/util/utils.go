@@ -3,6 +3,7 @@ package util
 import (
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 // StrToIntSlice если ошибка, возращает ее и частично заполенный срез
@@ -21,4 +22,15 @@ func StrToIntSlice(str, delim string) ([]int, error) {
 	}
 
 	return nums, err
+}
+
+// WithoutDigits удаляет все цифры из строки
+func WithoutDigits(input string) string {
+	var result []rune
+	for _, r := range input {
+		if !unicode.IsDigit(r) {
+			result = append(result, r)
+		}
+	}
+	return string(result)
 }
