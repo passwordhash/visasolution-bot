@@ -46,10 +46,15 @@ type Image interface {
 	UploadImage(url string) (string, error)
 }
 
+type Email interface {
+	SendAvailbilityNotification(to string) error
+}
+
 type Service struct {
 	Selenium
 	Chat
 	Image
+	Email
 }
 
 type Deps struct {
@@ -64,6 +69,8 @@ type Deps struct {
 
 	ImgurClientId     string
 	ImgurClientSecret string
+
+	EmailDeps
 }
 
 func NewService(deps Deps) *Service {
@@ -71,5 +78,6 @@ func NewService(deps Deps) *Service {
 		Selenium: NewSeleniumService(deps.MaxTries, deps.BlsEmail, deps.BlsPassword),
 		Chat:     NewChatService(deps.ChatApiKey),
 		Image:    NewImageService(deps.ImgurClientId, deps.ImgurClientSecret),
+		Email:    NewEmailService(deps.EmailDeps),
 	}
 }

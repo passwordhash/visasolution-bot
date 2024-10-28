@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/joho/godotenv"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -15,6 +16,11 @@ type Config struct {
 
 	ImgurClientId     string
 	ImgurClientSecret string
+
+	SmtpHost     string
+	SmtpPort     int
+	SmtpUsername string
+	Password     string
 }
 
 func LoadConfig() (Config, error) {
@@ -22,6 +28,8 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+
+	smtpPort, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
 
 	return Config{
 		BlsEmail:          os.Getenv("BLS_EMAIL"),
@@ -31,5 +39,9 @@ func LoadConfig() (Config, error) {
 		ProxyRowForeign:   os.Getenv("PROXY_ROW_FOREIGN"),
 		ImgurClientId:     os.Getenv("IMGUR_CLIENT_ID"),
 		ImgurClientSecret: os.Getenv("IMGUR_CLIENT_SECRET"),
+		SmtpHost:          os.Getenv("SMTP_HOST"),
+		SmtpPort:          smtpPort,
+		SmtpUsername:      os.Getenv("SMTP_USERNAME"),
+		Password:          os.Getenv("SMTP_PASSWORD"),
 	}, nil
 }

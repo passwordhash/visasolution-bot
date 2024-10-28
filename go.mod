@@ -9,4 +9,6 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/sashabaranov/go-openai v1.32.0 // indirect
 	github.com/tebeka/selenium v0.9.9 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/mail.v2 v2.3.1 // indirect
 )

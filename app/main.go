@@ -10,7 +10,6 @@ import (
 //docker run --rm -p=4444:4444 selenium/standalone-chrome
 //docker run --rm -p=4444:4444 --shm-size=2g -v /Users/yaroslav/code/projects/visasolution/volumes:/home/seluser/Downloads selenium/standalone-chrome
 
-// const loginURL = "https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"
 const (
 	baseURL                 = "https://russia.blsspainglobal.com/"
 	loginURL                = "Global/account/login"
@@ -33,7 +32,14 @@ func main() {
 		ChatApiKey:        config.ChatApiKey,
 		ImgurClientId:     config.ImgurClientId,
 		ImgurClientSecret: config.ImgurClientSecret,
+		EmailDeps: service.EmailDeps{
+			Host:     config.SmtpHost,
+			Port:     config.SmtpPort,
+			Username: config.SmtpUsername,
+			Password: config.Password,
+		},
 	})
+
 	workers := worker.NewWorker(services, baseURL, visaTypeVerificationURL)
 
 	// TODO: client imgur
