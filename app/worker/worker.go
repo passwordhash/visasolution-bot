@@ -100,29 +100,11 @@ func (w *Worker) Run() error {
 		}
 
 		// DEBUG:
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 5)
 		// TODO: <<<
 	} else {
 		log.Println("Already authorized. Skip authorization")
 	}
-
-	//// TODO: код до "<<<" надо переписать
-	//// TODO: реализовать ожидание подгрузки следующий страницы (ожидание момента авторизации)
-	////DEBUG:
-	//time.Sleep(time.Second * 5)
-	//
-	//if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
-	//	return err
-	//}
-	//
-	//// DEBUG:
-	//time.Sleep(time.Second * 10)
-	//
-	//// Book new
-	////if err := w.services.Selenium.BookNew(); err != nil {
-	////	return fmt.Errorf("book new error:%w", err)
-	////}
-	//// TODO: <<<
 
 	// Solving second captcha
 	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
@@ -131,7 +113,7 @@ func (w *Worker) Run() error {
 	log.Println("Second captcha successfully clicked")
 
 	// DEBUG:
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 3)
 
 	log.Println("Retry process second captcha starts ...")
 	if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
@@ -144,6 +126,22 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("book new appointment error:%w", err)
 	}
 	log.Println("Book new appointment submit successfully")
+
+	// DEBUG:
+	time.Sleep(time.Second * 4)
+
+	// Check availability
+	isAppointmentAvailable, err := w.services.Selenium.CheckAvailability()
+	if err != nil {
+		return fmt.Errorf("check availability error:%w", err)
+	}
+	log.Println("Check availability successfully")
+
+	if isAppointmentAvailable {
+		log.Println("!!!Appointment available!!!")
+	} else {
+		log.Println("!!!Appointment NOT available!!!")
+	}
 
 	// DEBUG:
 	time.Sleep(time.Second * 15)
@@ -180,7 +178,10 @@ func (w *Worker) LoadCookies() error {
 func (w *Worker) SaveCookies() {
 	var cookies []selenium.Cookie
 	cooks, _ := w.services.Selenium.GetCookies()
-	fmt.Println("cooks: ", cooks)
+
+	// DEBUG:
+	fmt.Println("cookies: ", cooks)
+
 	// TODO: refactor
 	cookie, err := w.services.Wd().GetCookie(".AspNetCore.Cookies")
 	if err != nil {
@@ -194,11 +195,6 @@ func (w *Worker) SaveCookies() {
 	if err != nil {
 		log.Println("Cannot marshal cookies:%w", err)
 		return
-	}
-
-	// DEBUG:
-	if err := os.Remove(cookiePath); err != nil {
-
 	}
 
 	if err := util.WriteFile(cookiePath, cookiesJson); err != nil {

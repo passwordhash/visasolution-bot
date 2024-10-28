@@ -22,12 +22,14 @@ type Selenium interface {
 
 	IsAuthorized(neededURLPath string) (bool, error)
 
+	ClickVerifyBtn() error
+
 	PullCaptchaImage() ([]byte, error)
 	SolveCaptcha(numbers []int) error
 	Authorize() error
 	BookNew() error
 	BookNewAppointment() error
-	ClickVerifyBtn() error
+	CheckAvailability() (bool, error)
 
 	Quit()
 }

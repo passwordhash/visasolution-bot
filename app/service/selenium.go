@@ -33,13 +33,17 @@ const (
 	bookNewAppointmentSubmitId = `btnSubmit`
 	bookNewFormXPath           = `//*[@id="div-main"]/div/div/div[2]/form`
 	bookNewFormControlsXPath   = `//*[@id="div-main"]/div/div/div[2]/form/div`
-	appointmentForId           = `self`
+
+	commonModalId       = `commonModal`
+	commonModalHeaderId = `commonModalHeader`
 
 	bookNewBtnXPath = `//*[@id="tns1-item1"]/div/div/div/div/a`
 )
 
 // Количество табов до первого input'а в форме Book New Appointment
 const tabsCountToFirstInput = 14
+
+const availabilityCheckMsg = "No Appointments Available"
 
 // Нужное количество нажатий на стрелку вниз для выбора каждого элемента формы по id. -1 означает, что элемент не нужно выбирать
 var inputKeyDownCounts = map[string]int{
@@ -354,6 +358,7 @@ func (s *SeleniumService) BookNew() error {
 	return nil
 }
 
+// BookNewAppointment заполняет форму "Book New Appointment" и отправляет ее
 func (s *SeleniumService) BookNewAppointment() error {
 	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentId); err != nil {
 		return fmt.Errorf("submit to book new appointment error: %w", err)
@@ -375,7 +380,7 @@ func (s *SeleniumService) BookNewAppointment() error {
 		return fmt.Errorf("move to first input error: %w", err)
 	}
 
-	for i, el := range formControlsDisplayed {
+	for _, el := range formControlsDisplayed {
 		// DEBUG:
 		time.Sleep(time.Second * 3)
 
@@ -396,7 +401,8 @@ func (s *SeleniumService) BookNewAppointment() error {
 
 		sanitizedId := util.WithoutDigits(id)
 
-		fmt.Printf("ELEMENT %d by id '%s' ", i+1, sanitizedId)
+		// DEBUG:
+		//fmt.Printf("ELEMENT %d by id '%s' ", i+1, sanitizedId)
 
 		keyDownCount := inputKeyDownCounts[sanitizedId]
 		if err := s.keyDownFor(keyDownCount, selenium.DownArrowKey); err != nil {
@@ -404,14 +410,14 @@ func (s *SeleniumService) BookNewAppointment() error {
 		}
 
 		// DEBUG:
-		fmt.Println("arrow down times ", keyDownCount)
+		//fmt.Println("arrow down times ", keyDownCount)
 
 		if err := s.wd.KeyDown(selenium.TabKey); err != nil {
 			return fmt.Errorf("press tabkey down error: %w", err)
 		}
 
 		// DEBUG:
-		log.Println("tab pressed")
+		//log.Println("tab pressed")
 	}
 
 	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentSubmitId); err != nil {
@@ -419,6 +425,38 @@ func (s *SeleniumService) BookNewAppointment() error {
 	}
 
 	return nil
+}
+
+// CheckAvailability проверяет доступность регистрации на получение визы
+func (s *SeleniumService) CheckAvailability() (bool, error) {
+	commonModal, err := s.waitAndFind(selenium.ByID, commonModalId)
+	if err != nil {
+		return false, fmt.Errorf("find common modal error: %w", err)
+	}
+
+	isDisplayed, err := commonModal.IsDisplayed()
+	if err != nil {
+		return false, fmt.Errorf("check common modal displayed error: %w", err)
+	}
+
+	header, err := commonModal.FindElement(selenium.ByID, commonModalHeaderId)
+	if err != nil {
+		return false, fmt.Errorf("find common modal header error: %w", err)
+	}
+
+	text, err := header.Text()
+	if err != nil {
+		return false, fmt.Errorf("get common modal header text error: %w", err)
+	}
+
+	isAvailable := !(strings.Contains(text, availabilityCheckMsg) || isDisplayed)
+
+	//DEBUG:
+	//fmt.Println("text: ", text)
+	//DEBUG:
+	//fmt.Println("is disply: ", isDisplayed)
+
+	return isAvailable, nil
 }
 
 // ClickVerifyBtn кликает по кнопке с ожиданием появления элемента. Синхронный метод.
@@ -557,7 +595,8 @@ func (s *SeleniumService) keyDownFor(times int, key string) error {
 		if err := s.wd.KeyDown(key); err != nil {
 			return err
 		}
-		fmt.Println("key downed")
+		// DEBUG:
+		//fmt.Println("key downed")
 	}
 	return nil
 }
@@ -567,6 +606,10 @@ func (s *SeleniumService) getDisplayedFormControls() ([]selenium.WebElement, err
 	formControls, err := s.wd.FindElements(selenium.ByXPATH, bookNewFormControlsXPath)
 	if err != nil {
 		return nil, fmt.Errorf("find 'book new' form controls error: %w", err)
+	}
+
+	if len(formControls) < 2 {
+		return nil, errors.New("no form controls found")
 	}
 
 	// DEBUG:
