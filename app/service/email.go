@@ -2,102 +2,16 @@ package service
 
 import (
 	"crypto/tls"
+	"fmt"
 	gomail "gopkg.in/mail.v2"
+	"os"
+	"visasolution/app/util"
 )
 
-var availabilityEmailTemplate = `
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Уведомление о записи на получение визы</title>
-  <style>
-    /* Общие стили */
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    .email-wrapper {
-      max-width: 600px;
-      margin: 0 auto;
-      background-color: #ffffff;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-    }
-    .email-header {
-      background-color: #0066cc;
-      color: #ffffff;
-      text-align: center;
-      padding: 20px;
-      font-size: 24px;
-      font-weight: bold;
-      border-top-left-radius: 8px;
-      border-top-right-radius: 8px;
-    }
-    .email-body {
-      padding: 20px;
-      color: #333333;
-    }
-    .email-body p {
-      line-height: 1.6;
-      font-size: 16px;
-      margin: 16px 0;
-    }
-    .email-footer {
-      text-align: center;
-      padding: 15px;
-      font-size: 14px;
-      color: #777777;
-      border-top: 1px solid #e0e0e0;
-      background-color: #f4f4f4;
-      border-bottom-left-radius: 8px;
-      border-bottom-right-radius: 8px;
-    }
-    .btn {
-      display: inline-block;
-      padding: 12px 20px;
-      background-color: #0066cc;
-      color: #ffffff;
-      text-decoration: none;
-      font-weight: bold;
-      border-radius: 5px;
-      margin-top: 10px;
-    }
-    .btn:hover {
-      background-color: #005bb5;
-    }
-    .highlight {
-      color: #0066cc;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div class="email-wrapper">
-    <div class="email-header">
-      Уведомление о записи на получение визы
-    </div>
-    <div class="email-body">
-      <p>Появились свободные места на запись на подачу документов! Бегом бронировать)</p>
-      <p>Для записи перейти по следующей ссылке:</p>
-      <p style="text-align: center;">
-        <a href="https://russia.blsspainglobal.com/Global/bls/VisaTypeVerification" class="btn">Перейти к записи</a>
-      </p>
-      <p>Не нужно затягивать с записью, так как количество мест ограничено и они могут быстро закончиться.</p>
-    </div>
-    <div class="email-footer">
-      Это автоматическое уведомление. Не нужно на него отвечать.
-    </div>
-  </div>
-</body>
-</html>
-`
-
 const (
-	emailSubject = "VisaSolution| Запись на подачу документов"
+	emailTemplateFilename = "email_template.html"
+	emailSubject          = "VisaSolution| Запись на подачу документов"
+	assetsFolder          = "assets"
 )
 
 type EmailDeps struct {
@@ -111,7 +25,16 @@ type EmailService struct {
 	d EmailDeps
 }
 
+func NewEmailService(d EmailDeps) *EmailService {
+	return &EmailService{d: d}
+}
+
 func (e *EmailService) SendAvailbilityNotification(to string) error {
+	availabilityEmailTemplate, err := e.getEmailTemplate()
+	if err != nil {
+		return fmt.Errorf("error reading email template: %v", err)
+	}
+
 	m := gomail.NewMessage()
 	m.SetHeader("From", "visasolution@passwordhash.tech")
 	m.SetHeader("To", to)
@@ -125,6 +48,12 @@ func (e *EmailService) SendAvailbilityNotification(to string) error {
 	return d.DialAndSend(m)
 }
 
-func NewEmailService(d EmailDeps) *EmailService {
-	return &EmailService{d: d}
+func (e *EmailService) getEmailTemplate() (string, error) {
+	path := util.GetAbsolutePath(assetsFolder + "/" + emailTemplateFilename)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }
