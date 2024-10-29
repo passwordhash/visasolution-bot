@@ -18,6 +18,9 @@ const (
 
 var cookiePath = tmpFolder + cookieFile
 
+// TODO: change
+const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
+
 type Worker struct {
 	services    *service.Service
 	baseURL     string
@@ -139,6 +142,10 @@ func (w *Worker) Run() error {
 
 	if isAppointmentAvailable {
 		log.Println("!!!Appointment available!!!")
+		err := w.services.Email.SendAvailbilityNotification(availbilityNotifiedEmail)
+		if err != nil {
+			return fmt.Errorf("send availability notification error:%w", err)
+		}
 	} else {
 		log.Println("!!!Appointment NOT available!!!")
 	}

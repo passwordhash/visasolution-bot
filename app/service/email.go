@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	emailTemplateFilename = "email_template.html"
+	emailTemplateFilename = "availbility-email-template.html"
 	emailSubject          = "VisaSolution| Запись на подачу документов"
 	assetsFolder          = "assets"
 )

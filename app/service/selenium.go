@@ -381,8 +381,7 @@ func (s *SeleniumService) BookNewAppointment() error {
 	}
 
 	for _, el := range formControlsDisplayed {
-		// DEBUG:
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Millisecond * 300)
 
 		input, err := el.FindElement(selenium.ByTagName, "input")
 		if err != nil {
@@ -613,7 +612,7 @@ func (s *SeleniumService) getDisplayedFormControls() ([]selenium.WebElement, err
 	}
 
 	// DEBUG:
-	log.Printf("len of form: %d\n", len(formControls))
+	//log.Printf("len of form: %d\n", len(formControls))
 
 	formControlsDisplayed := make([]selenium.WebElement, 0)
 	for _, el := range formControls[2:] {
@@ -627,7 +626,7 @@ func (s *SeleniumService) getDisplayedFormControls() ([]selenium.WebElement, err
 	}
 
 	// DEBUG:
-	log.Printf("len of form displayed: %d\n", len(formControlsDisplayed))
+	//log.Printf("len of form displayed: %d\n", len(formControlsDisplayed))
 
 	return formControlsDisplayed, nil
 }
