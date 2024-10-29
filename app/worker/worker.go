@@ -38,10 +38,9 @@ func NewWorker(services *service.Service, parseUrl, visaTypeUrl string) *Worker 
 // Run должен быть вызван только после инициализации всех сервисов
 func (w *Worker) Run() error {
 	// Chat api test
-	// COMMENTED FOR DEV
-	//if err := w.services.Chat.TestConnection(); err != nil {
-	//	return fmt.Errorf("chat api connection error:%w", err)
-	//}
+	if err := w.services.Chat.TestConnection(); err != nil {
+		return fmt.Errorf("chat api connection error:%w", err)
+	}
 
 	// Selenium parse page
 	if err := w.services.Parse(w.baseURL); err != nil {
@@ -50,11 +49,10 @@ func (w *Worker) Run() error {
 	log.Println("Web page parsed")
 
 	// Page test
-	// COMMENTED FOR DEV
-	//if err := w.services.Selenium.TestPage(); err != nil {
-	//	return fmt.Errorf("page load test error:%w", err)
-	//}
-	//log.Println("Page successfully loaded")
+	if err := w.services.Selenium.TestPage(); err != nil {
+		return fmt.Errorf("page load test error:%w", err)
+	}
+	log.Println("Page successfully loaded")
 
 	// Maximize window
 	if err := w.services.Selenium.MaximizeWindow(); err != nil {
