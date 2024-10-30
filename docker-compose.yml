@@ -1,0 +1,18 @@
+name: "visasolution-bot"
+services:
+    selenium:
+        shm_size: 2g
+        image: selenium/standalone-chrome
+        ports:
+            -   "4444:4444"
+
+    app:
+        build: .
+        ports:
+            -   "2525:2525"
+        environment:
+            - SELENIUM_URL=http://selenium:4444/wd/hub
+        depends_on:
+            -   selenium
+
+

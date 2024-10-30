@@ -7,6 +7,8 @@ import (
 )
 
 type Config struct {
+	SeleniumUrl string
+
 	BlsEmail    string
 	BlsPassword string
 
@@ -32,6 +34,7 @@ func LoadConfig() (Config, error) {
 	smtpPort, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
 
 	return Config{
+		SeleniumUrl:       os.Getenv("SELENIUM_URL"),
 		BlsEmail:          os.Getenv("BLS_EMAIL"),
 		BlsPassword:       os.Getenv("BLS_PASSWORD"),
 		ChatApiKey:        os.Getenv("CHAT_API_KEY"),

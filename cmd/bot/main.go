@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// Selenium connect
-	err = services.Selenium.ConnectWithProxy("", extensionPath)
+	err = services.Selenium.ConnectWithProxy(config.SeleniumUrl, extensionPath)
 	if err != nil {
 		log.Println("Web driver connection error: ", err)
 		return
