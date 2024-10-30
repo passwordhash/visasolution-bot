@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"visasolution/app/service"
-	"visasolution/app/util"
+	"visasolution/internal/service"
+	util2 "visasolution/pkg/util"
 )
 
 const processCaptchaMaxTries = 2
@@ -49,7 +49,7 @@ func (w *Worker) processCaptcha() error {
 	if err != nil {
 		return fmt.Errorf("request to chat api with image url error:%w", err)
 	}
-	cardNums, err := util.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
+	cardNums, err := util2.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
 	log.Println("cards to select: ", cardNums)
 
 	err = w.services.Selenium.SolveCaptcha(cardNums)
@@ -65,5 +65,5 @@ func (w *Worker) saveCaptchaImage(relativePath string) error {
 	if err != nil {
 		return fmt.Errorf("cannot pull captcha image:%w", err)
 	}
-	return util.WriteFile(util.GetAbsolutePath(relativePath), img)
+	return util2.WriteFile(util2.GetAbsolutePath(relativePath), img)
 }

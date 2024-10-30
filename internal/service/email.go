@@ -5,7 +5,7 @@ import (
 	"fmt"
 	gomail "gopkg.in/mail.v2"
 	"os"
-	"visasolution/app/util"
+	"visasolution/pkg/util"
 )
 
 const (

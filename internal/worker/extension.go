@@ -3,7 +3,7 @@ package worker
 import (
 	"fmt"
 	"strings"
-	"visasolution/app/util"
+	"visasolution/pkg/util"
 )
 
 const chromeExtensionFilename = "proxy_auth_plugin.zip"

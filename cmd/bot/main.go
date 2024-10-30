@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	cfg "visasolution/app/config"
-	"visasolution/app/service"
-	"visasolution/app/worker"
+	cfg "visasolution/internal/config"
+	"visasolution/internal/service"
+	"visasolution/internal/worker"
 )
 
 //docker run --rm -p=4444:4444 selenium/standalone-chrome

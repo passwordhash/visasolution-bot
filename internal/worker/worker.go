@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 	"time"
-	"visasolution/app/service"
-	"visasolution/app/util"
+	"visasolution/internal/service"
+	"visasolution/pkg/util"
 )
 
 const (

@@ -8,7 +8,7 @@ import (
 	"log"
 	"strings"
 	"time"
-	"visasolution/app/util"
+	util2 "visasolution/pkg/util"
 )
 
 const waitDuration = time.Second * 15
@@ -398,7 +398,7 @@ func (s *SeleniumService) BookNewAppointment() error {
 			continue
 		}
 
-		sanitizedId := util.WithoutDigits(id)
+		sanitizedId := util2.WithoutDigits(id)
 
 		// DEBUG:
 		//fmt.Printf("ELEMENT %d by id '%s' ", i+1, sanitizedId)
@@ -555,7 +555,7 @@ func (s *SeleniumService) getElementSizes(elem selenium.WebElement) (int, int, e
 		return 0, 0, err
 	}
 
-	width, err = util.PxToInt(widthProp)
+	width, err = util2.PxToInt(widthProp)
 	if err != nil {
 		return 0, 0, fmt.Errorf("convert px to int error:%w", err)
 	}
@@ -565,7 +565,7 @@ func (s *SeleniumService) getElementSizes(elem selenium.WebElement) (int, int, e
 		return 0, 0, err
 	}
 
-	heigth, err = util.PxToInt(heightProp)
+	heigth, err = util2.PxToInt(heightProp)
 	if err != nil {
 		return 0, 0, fmt.Errorf("convert px to int error:%w", err)
 	}
