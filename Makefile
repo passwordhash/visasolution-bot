@@ -1,7 +1,6 @@
 run: docker-compose-build docker-compose-up
 
-run-down:
-	docker-compose down
+down: docker-compose-down
 
 dev: run-app
 
@@ -15,6 +14,9 @@ docker-compose-build:
 
 docker-compose-up:
 	docker-compose up -d
+
+docker-compose-down:
+	docker compose down
 
 run-app:
 	-docker run --rm -d -p=4444:4444 --shm-size=2g -v /Users/yaroslav/code/projects/visasolution/volumes:/home/seluser/Downloads selenium/standalone-chrome

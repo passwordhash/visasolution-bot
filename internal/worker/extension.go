@@ -8,8 +8,7 @@ import (
 
 const chromeExtensionFilename = "proxy_auth_plugin.zip"
 
-var chromeExtensionRelativePath = tmpFolder + chromeExtensionFilename
-
+// manifest шаблон для файла манифеста расширения
 var manifest = `
 {
     "version": "1.0.0",
@@ -30,6 +29,8 @@ var manifest = `
     "minimum_chrome_version":"22.0.0"
 }
 `
+
+// backgroundJS шаблон для скрипта расширения
 var backgroundJS = `
 var config = {
         mode: "fixed_servers",
@@ -68,40 +69,31 @@ type Proxy struct {
 	Password string
 }
 
-// FromRow приминает прокси в виде "ip:host@usrname:pswrd"
-func FromRow(proxyRow string) (Proxy, error) {
-	var proxy Proxy
-
+// ParseProxy приминает прокси в виде "ip:host@usrname:pswrd" и возвращает структуру Proxy
+func ParseProxy(proxyRow string) (Proxy, error) {
 	parts := strings.Split(proxyRow, "@")
 	if len(parts) != 2 {
-		return proxy, fmt.Errorf("invalid proxy format, expected 'ip:port@username:password'")
+		return Proxy{}, fmt.Errorf("invalid proxy format, expected 'ip:port@username:password'")
 	}
 
-	ipPort := parts[0]
-	auth := parts[1]
-
-	ipPortParts := strings.Split(ipPort, ":")
-	if len(ipPortParts) != 2 {
-		return proxy, fmt.Errorf("invalid ip:port format")
+	ipPortParts := strings.Split(parts[0], ":")
+	authParts := strings.Split(parts[1], ":")
+	if len(ipPortParts) != 2 || len(authParts) != 2 {
+		return Proxy{}, fmt.Errorf("invalid format")
 	}
 
-	proxy.Host = ipPortParts[0]
-	proxy.Port = ipPortParts[1]
-
-	authParts := strings.Split(auth, ":")
-	if len(authParts) != 2 {
-		return proxy, fmt.Errorf("invalid username:password format")
-	}
-
-	proxy.Username = authParts[0]
-	proxy.Password = authParts[1]
-
-	return proxy, nil
+	return Proxy{
+		Host:     ipPortParts[0],
+		Port:     ipPortParts[1],
+		Username: authParts[0],
+		Password: authParts[1],
+	}, nil
 }
 
 // GenerateProxyAuthExtension приминает прокси в виде "ip:host@usrname:pswrd"
 func (w *Worker) GenerateProxyAuthExtension(proxyRow string) (string, error) {
-	proxy, err := FromRow(proxyRow)
+	path := w.chromeExtensionPath()
+	proxy, err := ParseProxy(proxyRow)
 	if err != nil {
 		return "", err
 	}
@@ -110,10 +102,14 @@ func (w *Worker) GenerateProxyAuthExtension(proxyRow string) (string, error) {
 	manifestContent := []byte(fmt.Sprintf(manifest))
 	backgroundJSContent := []byte(fmt.Sprintf(backgroundJS, proxy.Host, proxy.Port, proxy.Username, proxy.Password))
 
-	err = util.CreateZip(filenames, [][]byte{manifestContent, backgroundJSContent}, chromeExtensionRelativePath)
+	err = util.CreateZip(filenames, [][]byte{manifestContent, backgroundJSContent}, path)
 	if err != nil {
 		return "", fmt.Errorf("error creating ZIP file: %v", err)
 	}
 
-	return chromeExtensionRelativePath, nil
+	return path, nil
+}
+
+func (w *Worker) chromeExtensionPath() string {
+	return w.d.TmpFolder + chromeExtensionFilename
 }

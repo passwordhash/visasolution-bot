@@ -7,15 +7,23 @@ import (
 	"visasolution/internal/worker"
 )
 
-//docker run --rm -p=4444:4444 selenium/standalone-chrome
-//docker run --rm -p=4444:4444 --shm-size=2g -v /Users/yaroslav/code/projects/visasolution/volumes:/home/seluser/Downloads selenium/standalone-chrome
-
 const (
 	baseURL                 = "https://russia.blsspainglobal.com/"
 	loginURL                = "Global/account/login"
 	visaTypeVerificationURL = "Global/bls/VisaTypeVerification"
 )
-const maxTries = 10
+
+const (
+	tmpFolder  = "tmp/"
+	cookieFile = "cookies.json"
+)
+
+const (
+	maxTries               = 10
+	processCaptchaMaxTries = 3
+)
+
+const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
 func main() {
 	// load config
@@ -40,7 +48,14 @@ func main() {
 		},
 	})
 
-	workers := worker.NewWorker(services, baseURL, visaTypeVerificationURL)
+	workers := worker.NewWorker(services, worker.Deps{
+		BaseURL:         baseURL,
+		VisaTypeURL:     visaTypeVerificationURL,
+		TmpFolder:       tmpFolder,
+		CookieFile:      cookieFile,
+		NotifiedEmail:   availbilityNotifiedEmail,
+		CaptchaMaxTries: processCaptchaMaxTries,
+	})
 
 	if err := workers.MakePreparation(); err != nil {
 		log.Fatalln("Make preparation error:", err)

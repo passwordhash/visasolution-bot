@@ -11,33 +11,31 @@ import (
 	"visasolution/pkg/util"
 )
 
-const (
-	tmpFolder  = "tmp/"
-	cookieFile = "cookies.json"
-)
+type Deps struct {
+	BaseURL     string
+	VisaTypeURL string
 
-var cookiePath = tmpFolder + cookieFile
-
-// TODO: change
-const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
-
-type Worker struct {
-	services    *service.Service
-	baseURL     string
-	visaTypeURL string
+	TmpFolder       string
+	CookieFile      string
+	NotifiedEmail   string
+	CaptchaMaxTries int
 }
 
-func NewWorker(services *service.Service, parseUrl, visaTypeUrl string) *Worker {
+type Worker struct {
+	services *service.Service
+	d        Deps
+}
+
+func NewWorker(services *service.Service, emailDeps Deps) *Worker {
 	return &Worker{
-		services:    services,
-		baseURL:     parseUrl,
-		visaTypeURL: visaTypeUrl,
+		services: services,
+		d:        emailDeps,
 	}
 }
 
 // MakePreparation выполняет подготовительную работу
 func (w *Worker) MakePreparation() error {
-	if err := util.CreateFolder(tmpFolder); err != nil {
+	if err := util.CreateFolder(w.d.TmpFolder); err != nil {
 		return fmt.Errorf("cannot create folder:%w", err)
 	}
 	return nil
@@ -51,7 +49,7 @@ func (w *Worker) Run() error {
 	}
 
 	// Selenium parse page
-	if err := w.services.Parse(w.baseURL); err != nil {
+	if err := w.services.Parse(w.d.BaseURL); err != nil {
 		return fmt.Errorf("page parse error:%w", err)
 	}
 	log.Println("Web page parsed")
@@ -73,11 +71,11 @@ func (w *Worker) Run() error {
 	}
 
 	// Go to visa type verification page
-	if err := w.services.Selenium.GoTo(w.baseURL + w.visaTypeURL); err != nil {
+	if err := w.services.Selenium.GoTo(w.d.BaseURL + w.d.VisaTypeURL); err != nil {
 		return fmt.Errorf("go to visa type verification page error:%w", err)
 	}
 
-	isAuthorized, _ := w.services.Selenium.IsAuthorized(w.baseURL + w.visaTypeURL)
+	isAuthorized, _ := w.services.Selenium.IsAuthorized(w.d.BaseURL + w.d.VisaTypeURL)
 	if !isAuthorized {
 		// Solving first captcha
 		if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
@@ -85,7 +83,7 @@ func (w *Worker) Run() error {
 		}
 
 		log.Println("Retry process first captcha starts ...")
-		if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
+		if err := w.RetryProcessCaptcha(w.d.CaptchaMaxTries); err != nil {
 			return fmt.Errorf("retry process first captcha error:%w", err)
 		}
 		log.Println("Retry process first captcha successfully ended")
@@ -125,7 +123,7 @@ func (w *Worker) Run() error {
 	time.Sleep(time.Second * 3)
 
 	log.Println("Retry process second captcha starts ...")
-	if err := w.RetryProcessCaptcha(processCaptchaMaxTries); err != nil {
+	if err := w.RetryProcessCaptcha(w.d.CaptchaMaxTries); err != nil {
 		return fmt.Errorf("retry process second captcha error:%w", err)
 	}
 	log.Println("Retry process second captcha successfully ended")
@@ -148,12 +146,18 @@ func (w *Worker) Run() error {
 
 	if isAppointmentAvailable {
 		log.Println("!!!Appointment available!!!")
-		err := w.services.Email.SendAvailbilityNotification(availbilityNotifiedEmail)
+		err := w.services.Email.SendAvailbilityNotification(w.d.NotifiedEmail)
 		if err != nil {
 			return fmt.Errorf("send availability notification error:%w", err)
 		}
+		log.Println("Availability notification sent")
 	} else {
 		log.Println("!!!Appointment NOT available!!!")
+		// DEBUG:
+		err := w.services.Email.SendAvailbilityNotification(w.d.NotifiedEmail)
+		if err != nil {
+			return fmt.Errorf("send availability notification error:%w", err)
+		}
 	}
 
 	// DEBUG:
@@ -165,8 +169,7 @@ func (w *Worker) Run() error {
 }
 
 func (w *Worker) LoadCookies() error {
-	cookiePath := tmpFolder + cookieFile
-	cookiesJson, err := os.ReadFile(cookiePath)
+	cookiesJson, err := os.ReadFile(w.cookieFilePath())
 	if err != nil {
 		return fmt.Errorf("cannot read cookies:%w", err)
 	}
@@ -210,10 +213,14 @@ func (w *Worker) SaveCookies() {
 		return
 	}
 
-	if err := util.WriteFile(cookiePath, cookiesJson); err != nil {
+	if err := util.WriteFile(w.cookieFilePath(), cookiesJson); err != nil {
 		log.Println("Cannot save cookies:%w", err)
 		return
 	}
 
 	log.Println("Cookies saved")
+}
+
+func (w *Worker) cookieFilePath() string {
+	return w.d.TmpFolder + w.d.CookieFile
 }

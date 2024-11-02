@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"log"
 	"visasolution/internal/service"
-	util2 "visasolution/pkg/util"
+	util "visasolution/pkg/util"
 )
 
-const processCaptchaMaxTries = 2
+const (
+	// msg сообщение, которое отправляется chat api
+	msg        = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right starting with 1.Take your time when choosing cards. The wrong decision is costly ”`
+	captchaImg = "captcha.png"
+)
 
-// msg сообщение, которое отправляется в чат
-const msg = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right starting with 1.Take your time when choosing cards. The wrong decision is costly ”`
-
-// captchaRelativePath путь к сохраненному изображению капчи
-var captchaRelativePath = tmpFolder + "captcha.png"
-
+// RetryProcessCaptcha пытается решить капчу заданное количество раз
 func (w *Worker) RetryProcessCaptcha(maxTries int) error {
 	for cntTries := 1; cntTries <= maxTries; cntTries++ {
 		log.Printf("try No %d to solve the captcha starts ...\n", cntTries)
@@ -33,13 +32,14 @@ func (w *Worker) RetryProcessCaptcha(maxTries int) error {
 	return fmt.Errorf("couldnt solve captcha after %d tries", maxTries)
 }
 
+// processCaptcha обрабатывает капчу, занимается ее решением
 func (w *Worker) processCaptcha() error {
-	err := w.saveCaptchaImage(captchaRelativePath)
+	err := w.saveCaptchaImage(w.captchaImgPath())
 	if err != nil {
 		return fmt.Errorf("save captcha image error:%w", err)
 	}
 
-	link, err := w.services.UploadImage(captchaRelativePath)
+	link, err := w.services.UploadImage(w.captchaImgPath())
 	if err != nil {
 		return fmt.Errorf("failed to upload captcha:%w", err)
 	}
@@ -49,7 +49,7 @@ func (w *Worker) processCaptcha() error {
 	if err != nil {
 		return fmt.Errorf("request to chat api with image url error:%w", err)
 	}
-	cardNums, err := util2.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
+	cardNums, err := util.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
 	log.Println("cards to select: ", cardNums)
 
 	err = w.services.Selenium.SolveCaptcha(cardNums)
@@ -60,10 +60,15 @@ func (w *Worker) processCaptcha() error {
 	return nil
 }
 
+// saveCaptchaImage сохраняет изображение капчи
 func (w *Worker) saveCaptchaImage(relativePath string) error {
 	img, err := w.services.Selenium.PullCaptchaImage()
 	if err != nil {
 		return fmt.Errorf("cannot pull captcha image:%w", err)
 	}
-	return util2.WriteFile(util2.GetAbsolutePath(relativePath), img)
+	return util.WriteFile(relativePath, img)
+}
+
+func (w *Worker) captchaImgPath() string {
+	return w.d.TmpFolder + captchaImg
 }
