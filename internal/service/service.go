@@ -24,6 +24,7 @@ type Selenium interface {
 
 	ClickVerifyBtn() error
 
+	PullPageScreenshot() ([]byte, error)
 	PullCaptchaImage() ([]byte, error)
 	SolveCaptcha(numbers []int) error
 	Authorize() error

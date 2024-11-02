@@ -15,8 +15,10 @@ type Deps struct {
 	BaseURL     string
 	VisaTypeURL string
 
-	TmpFolder       string
-	CookieFile      string
+	TmpFolder      string
+	CookieFile     string
+	ScreenshotFile string
+
 	NotifiedEmail   string
 	CaptchaMaxTries int
 }
@@ -97,16 +99,13 @@ func (w *Worker) Run() error {
 		}
 		log.Println("Authorization successfully")
 
-		// TODO: код до "<<<" надо переписать
-		// TODO: реализовать ожидание подгрузки следующий страницы (ожидание момента авторизации)
-		//DEBUG:
+		// TODO: реализовать ожидание подгрузки следующий страницы (ожидание момента авторизации) >>>
 		time.Sleep(time.Second * 5)
 
 		if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
 			return err
 		}
 
-		// DEBUG:
 		time.Sleep(time.Second * 5)
 		// TODO: <<<
 	} else {
@@ -146,19 +145,22 @@ func (w *Worker) Run() error {
 
 	if isAppointmentAvailable {
 		log.Println("!!!Appointment available!!!")
-		err := w.services.Email.SendAvailbilityNotification(w.d.NotifiedEmail)
-		if err != nil {
-			return fmt.Errorf("send availability notification error:%w", err)
-		}
-		log.Println("Availability notification sent")
+
 	} else {
 		log.Println("!!!Appointment NOT available!!!")
-		// DEBUG:
-		err := w.services.Email.SendAvailbilityNotification(w.d.NotifiedEmail)
-		if err != nil {
-			return fmt.Errorf("send availability notification error:%w", err)
-		}
 	}
+
+	// TEMP: Save page screenshot
+	if err := w.savePageScreenshot(); err != nil {
+		log.Println("Cannot save page screenshot:%w", err)
+	}
+
+	// TEMP: в качестве проверки правильности определния мест для записи, в любом случае отправляется письм
+	err = w.services.Email.SendAvailbilityNotification(w.d.NotifiedEmail)
+	if err != nil {
+		return fmt.Errorf("send availability notification error:%w", err)
+	}
+	log.Println("Availability notification sent")
 
 	// DEBUG:
 	time.Sleep(time.Second * 15)
@@ -223,4 +225,18 @@ func (w *Worker) SaveCookies() {
 
 func (w *Worker) cookieFilePath() string {
 	return w.d.TmpFolder + w.d.CookieFile
+}
+
+func (w *Worker) savePageScreenshot() error {
+	path := w.d.TmpFolder + w.d.ScreenshotFile
+	data, err := w.services.Selenium.PullPageScreenshot()
+	if err != nil {
+		return fmt.Errorf("cannot pull page screenshot:%w", err)
+	}
+
+	if err := util.WriteFile(path, data); err != nil {
+		return fmt.Errorf("cannot write screenshot:%w", err)
+	}
+
+	return nil
 }

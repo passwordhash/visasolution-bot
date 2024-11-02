@@ -211,6 +211,11 @@ func (s *SeleniumService) Quit() {
 	s.wd.Quit()
 }
 
+// PullPageScreenshot делает скриншот текущей страницы
+func (s *SeleniumService) PullPageScreenshot() ([]byte, error) {
+	return s.wd.Screenshot()
+}
+
 func (s *SeleniumService) PullCaptchaImage() ([]byte, error) {
 	// TODO: REFACTOR перенести часть в worker
 	// переключаемся на iframe капчи, находим контейнер, возращаемся обратно,
@@ -302,8 +307,6 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	text, err := s.wd.AlertText()
 	defer s.wd.AcceptAlert()
 
-	// DEBUG:
-	//fmt.Println("alert text and error: ", text, " ", err)
 	// TODO: сделать другую проверка на неправилное решение капчи
 	if strings.Contains(text, invalidSelectionMsg) || err == nil {
 		return InvalidSelectionError

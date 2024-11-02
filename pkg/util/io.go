@@ -26,7 +26,6 @@ func EncodeBase64Image(imagePath string) (string, error) {
 	return base64Image, nil
 }
 
-// TODO: подумать о необходимости этой функции
 func GetAbsolutePath(relativePath string) string {
 	wd, _ := os.Getwd()
 	return path.Join(wd, relativePath)

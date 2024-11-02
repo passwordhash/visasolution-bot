@@ -14,8 +14,9 @@ const (
 )
 
 const (
-	tmpFolder  = "tmp/"
-	cookieFile = "cookies.json"
+	tmpFolder      = "tmp/"
+	cookieFile     = "cookies.json"
+	screenshotFile = "screenshot.png"
 )
 
 const (
@@ -23,6 +24,7 @@ const (
 	processCaptchaMaxTries = 3
 )
 
+// TODO: изменить способ. Мб через аргумент ?
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
 func main() {
@@ -41,10 +43,11 @@ func main() {
 		ImgurClientId:     config.ImgurClientId,
 		ImgurClientSecret: config.ImgurClientSecret,
 		EmailDeps: service.EmailDeps{
-			Host:     config.SmtpHost,
-			Port:     config.SmtpPort,
-			Username: config.SmtpUsername,
-			Password: config.Password,
+			Host:               config.SmtpHost,
+			Port:               config.SmtpPort,
+			Username:           config.SmtpUsername,
+			Password:           config.Password,
+			ScreenshotFilePath: tmpFolder + screenshotFile,
 		},
 	})
 
@@ -55,13 +58,13 @@ func main() {
 		CookieFile:      cookieFile,
 		NotifiedEmail:   availbilityNotifiedEmail,
 		CaptchaMaxTries: processCaptchaMaxTries,
+		ScreenshotFile:  screenshotFile,
 	})
 
+	// Make preparatin
 	if err := workers.MakePreparation(); err != nil {
 		log.Fatalln("Make preparation error:", err)
 	}
-
-	// TODO: client imgur
 
 	// Chat client init
 	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
