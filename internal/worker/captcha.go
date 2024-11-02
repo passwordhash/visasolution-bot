@@ -18,9 +18,9 @@ var captchaRelativePath = tmpFolder + "captcha.png"
 
 func (w *Worker) RetryProcessCaptcha(maxTries int) error {
 	for cntTries := 1; cntTries <= maxTries; cntTries++ {
-		log.Printf("try №%d to solve the captcha starts ...\n", cntTries)
+		log.Printf("try No %d to solve the captcha starts ...\n", cntTries)
 		err := w.processCaptcha()
-		log.Printf("try №%d to solve the captcha ended\n", cntTries)
+		log.Printf("try No %d to solve the captcha ended\n", cntTries)
 		if err == nil {
 			return nil
 		}

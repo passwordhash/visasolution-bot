@@ -1,19 +1,23 @@
-FROM golang:1.21-alpine
-LABEL authors="passwordhash"
+FROM golang:1.21-alpine AS base
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+# Build
+FROM base AS build
+
+COPY --link go.mod go.sum ./
 
 RUN go mod download
 
-# На будущее
-VOLUME ["/var/log"]
-
 COPY . .
 
-EXPOSE 2525
-
 RUN go build -o main cmd/bot/main.go
+
+# Run
+FROM base
+
+COPY .env /app/.env
+COPY --from=build /app/main /app/main
+COPY --from=build /app/assets /app/assets
 
 CMD ["./main"]

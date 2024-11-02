@@ -9,22 +9,6 @@ import (
 	"path"
 )
 
-func GetAbsolutePath(relativePath string) string {
-	wd, _ := os.Getwd()
-	return path.Join(wd, relativePath)
-}
-
-func WriteFile(filePath string, data []byte) error {
-	file, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-
-	_, err = file.Write(data)
-
-	return err
-}
-
 // EncodeBase64Image для кодирования изображения в base64
 func EncodeBase64Image(imagePath string) (string, error) {
 	imageFile, err := os.Open(imagePath)
@@ -42,10 +26,27 @@ func EncodeBase64Image(imagePath string) (string, error) {
 	return base64Image, nil
 }
 
+// TODO: подумать о необходимости этой функции
+func GetAbsolutePath(relativePath string) string {
+	wd, _ := os.Getwd()
+	return path.Join(wd, relativePath)
+}
+
+func WriteFile(filePath string, data []byte) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(data)
+
+	return err
+}
+
 // CreateZip создает ZIP-файл с заданными именами файлов и содержимым
-func CreateZip(filenames []string, contents [][]byte, zipFilename string) error {
+func CreateZip(filenames []string, contents [][]byte, zipPath string) error {
 	// Создаем новый ZIP-файл
-	zipFile, err := os.Create(zipFilename)
+	zipFile, err := os.Create(zipPath)
 	if err != nil {
 		return fmt.Errorf("error creating ZIP file: %v", err)
 	}
@@ -81,4 +82,9 @@ func AddFileToZip(zipWriter *zip.Writer, fileName string, content []byte) error 
 	}
 
 	return nil
+}
+
+// CreateFolder создает каталог со всеми необходимыми подпапками
+func CreateFolder(path string) error {
+	return os.MkdirAll(path, os.ModePerm)
 }

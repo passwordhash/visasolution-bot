@@ -9,10 +9,9 @@ services:
     app:
         build: .
         ports:
-            -   "2525:2525"
+            - "2525:2525"
         environment:
             - SELENIUM_URL=http://selenium:4444/wd/hub
+
         depends_on:
             -   selenium
-
-

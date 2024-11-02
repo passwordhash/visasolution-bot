@@ -35,6 +35,14 @@ func NewWorker(services *service.Service, parseUrl, visaTypeUrl string) *Worker 
 	}
 }
 
+// MakePreparation выполняет подготовительную работу
+func (w *Worker) MakePreparation() error {
+	if err := util.CreateFolder(tmpFolder); err != nil {
+		return fmt.Errorf("cannot create folder:%w", err)
+	}
+	return nil
+}
+
 // Run должен быть вызван только после инициализации всех сервисов
 func (w *Worker) Run() error {
 	// Chat api test

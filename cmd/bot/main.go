@@ -42,6 +42,10 @@ func main() {
 
 	workers := worker.NewWorker(services, baseURL, visaTypeVerificationURL)
 
+	if err := workers.MakePreparation(); err != nil {
+		log.Fatalln("Make preparation error:", err)
+	}
+
 	// TODO: client imgur
 
 	// Chat client init
