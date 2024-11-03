@@ -20,4 +20,6 @@ COPY .env /app/.env
 COPY --from=build /app/main /app/main
 COPY --from=build /app/assets /app/assets
 
+VOLUME /app/logs
+
 CMD ["./main"]

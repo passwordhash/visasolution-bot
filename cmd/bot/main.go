@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -19,6 +20,7 @@ const (
 )
 
 const (
+	logFolder      = "log/"
 	tmpFolder      = "tmp/"
 	cookieFile     = "cookies.json"
 	screenshotFile = "screenshot.png"
@@ -29,11 +31,18 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-const mainLoopIntervalM = 10
+const mainLoopIntervalM = 1
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
 func main() {
+	logFile, err := setupLogger()
+	if err != nil {
+		log.Fatalln("Failed to setup logger:", err)
+	}
+	defer logFile.Close()
+	log.Println("Logger inited")
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go handleDoneSigs(cancel)
@@ -107,11 +116,16 @@ func main() {
 		}
 		log.Println("Waiting for the next iteration ...")
 	})
+
+	log.Println("INFO: app stopped ")
 }
 
 func startPeriodicTask(ctx context.Context, interval time.Duration, f func()) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+
+	// DEBUG:
+	f()
 
 	for {
 		select {
@@ -132,4 +146,23 @@ func handleDoneSigs(cancel context.CancelFunc) {
 	fmt.Println("Signal received:", sig)
 
 	cancel()
+}
+
+func setupLogger() (*os.File, error) {
+	err := os.MkdirAll(logFolder, os.ModePerm)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create log folder: %v", err)
+	}
+
+	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open log file: %v", err)
+	}
+
+	multiWritter := io.MultiWriter(os.Stdout, logFile)
+
+	log.SetOutput(multiWritter)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
+	return logFile, nil
 }
