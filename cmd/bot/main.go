@@ -1,7 +1,13 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 	cfg "visasolution/internal/config"
 	"visasolution/internal/service"
 	"visasolution/internal/worker"
@@ -9,7 +15,6 @@ import (
 
 const (
 	baseURL                 = "https://russia.blsspainglobal.com/"
-	loginURL                = "Global/account/login"
 	visaTypeVerificationURL = "Global/bls/VisaTypeVerification"
 )
 
@@ -24,11 +29,15 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-// TODO: изменить способ. Мб через аргумент ?
+const mainLoopIntervalM = 10
+
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
 func main() {
-	// load config
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go handleDoneSigs(cancel)
+
 	config, err := cfg.LoadConfig()
 	if err != nil {
 		log.Fatalln(err)
@@ -62,7 +71,8 @@ func main() {
 	})
 
 	// Make preparatin
-	if err := workers.MakePreparation(); err != nil {
+	err = workers.MakePreparation()
+	if err != nil {
 		log.Fatalln("Make preparation error:", err)
 	}
 
@@ -85,14 +95,41 @@ func main() {
 		log.Println("Web driver connection error: ", err)
 		return
 	}
+	log.Println("Web driver connected")
 	defer services.Quit()
 	defer workers.SaveCookies()
-	log.Println("Web driver connected")
 
-	// Run worker
-	err = workers.Run()
-	if err != nil {
-		log.Println("Worker run error:", err)
-		return
+	// Main loop
+	startPeriodicTask(ctx, mainLoopIntervalM*time.Minute, func() {
+		err := workers.Run()
+		if err != nil {
+			log.Println("Main loop error:", err)
+		}
+		log.Println("Waiting for the next iteration ...")
+	})
+}
+
+func startPeriodicTask(ctx context.Context, interval time.Duration, f func()) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			f()
+		}
 	}
+}
+
+func handleDoneSigs(cancel context.CancelFunc) {
+	sigs := make(chan os.Signal, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	sig := <-sigs
+	fmt.Println("Signal received:", sig)
+
+	cancel()
 }
