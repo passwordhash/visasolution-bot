@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 	"time"
 	cfg "visasolution/internal/config"
@@ -20,10 +21,11 @@ const (
 )
 
 const (
-	logFolder      = "log/"
-	tmpFolder      = "tmp/"
-	cookieFile     = "cookies.json"
-	screenshotFile = "screenshot.png"
+	logFolder          = "logs/"
+	logFilename        = "app.log"
+	tmpFolder          = "tmp/"
+	cookieFilename     = "cookies.json"
+	screenshotFilename = "screenshot.png"
 )
 
 const (
@@ -31,7 +33,7 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-const mainLoopIntervalM = 1
+const mainLoopIntervalM = 8
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
@@ -65,7 +67,7 @@ func main() {
 			Port:               config.SmtpPort,
 			Username:           config.SmtpUsername,
 			Password:           config.Password,
-			ScreenshotFilePath: tmpFolder + screenshotFile,
+			ScreenshotFilePath: tmpFolder + screenshotFilename,
 		},
 	})
 
@@ -73,10 +75,10 @@ func main() {
 		BaseURL:         baseURL,
 		VisaTypeURL:     visaTypeVerificationURL,
 		TmpFolder:       tmpFolder,
-		CookieFile:      cookieFile,
+		CookieFile:      cookieFilename,
 		NotifiedEmail:   availbilityNotifiedEmail,
 		CaptchaMaxTries: processCaptchaMaxTries,
-		ScreenshotFile:  screenshotFile,
+		ScreenshotFile:  screenshotFilename,
 	})
 
 	// Make preparatin
@@ -154,7 +156,7 @@ func setupLogger() (*os.File, error) {
 		return nil, fmt.Errorf("failed to create log folder: %v", err)
 	}
 
-	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(path.Join(logFolder, logFilename), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file: %v", err)
 	}

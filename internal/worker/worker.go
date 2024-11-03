@@ -108,6 +108,8 @@ func (w *Worker) Run() error {
 
 		time.Sleep(time.Second * 5)
 		// TODO: <<<
+
+		w.SaveCookies()
 	} else {
 		log.Println("Already authorized. Skip authorization")
 	}

@@ -1,19 +1,24 @@
 name: "visasolution-bot"
 services:
     selenium:
+        container_name:
+            selenium-chrome
         shm_size: 2g
         image: selenium/standalone-chrome
         ports:
             -   "4444:4444"
 
     app:
+        container_name:
+            bot
+        image: visasolution-bot-app:latest
         build: .
-        volumes:
-            -   visasolution-logs:/app/logs
         ports:
             - "2525:2525"
         environment:
             - SELENIUM_URL=http://selenium:4444/wd/hub
+        volumes:
+            - visasolution-logs:/app/logs
         depends_on:
             -   selenium
 
