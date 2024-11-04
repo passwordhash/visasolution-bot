@@ -35,7 +35,7 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-const mainLoopIntervalM = 30
+const mainLoopIntervalM = 3
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
@@ -88,7 +88,6 @@ func main() {
 		ScreenshotFile:  screenshotFilename,
 	})
 
-	// Make preparatin
 	err = workers.MakePreparation()
 	if err != nil {
 		log.Fatalln("Make preparation error:", err)
@@ -109,46 +108,48 @@ func main() {
 
 	defer workers.SaveCookies()
 
-	// Main ticker interval
 	ticker := time.NewTicker(mainLoopIntervalM * time.Minute)
+	//ticker := time.NewTicker(1)
 
-	startPeriodicTask(ctx, ticker, func() {
-		ticker = time.NewTicker(mainLoopIntervalM * time.Minute)
-		defer log.Println("Waiting for the next iteration ...")
+	go func(ticker *time.Ticker) {
+		for {
+			select {
+			case <-ticker.C:
+				var banErr worker.TooManyRequestsErr
+				err := workers.Run()
+				if errors.As(err, &banErr) {
+					log.Println(banErr)
+					log.Println("Trying to reconnect with another proxy ...")
 
-		err := workers.Run()
-		if !errors.Is(err, worker.TooManyRequestsErr) && err != nil {
-			log.Println("Main loop error:", err)
-			return
+					err = services.Selenium.Quit()
+					if err != nil {
+						log.Println("Web driver quit error:", err)
+					}
+
+					err = workers.ConnectWithGeneratedProxy(services.Selenium, config.SeleniumUrl, proxiesManager.Next())
+					if err != nil {
+						log.Println("Web driver reconnect error:", err)
+					}
+
+					log.Println("Web driver reconnected with new proxy: ", proxiesManager.Current().Host)
+					break
+				}
+				if err != nil {
+					log.Println("Main loop error:", err)
+				}
+
+				log.Println("Waiting for the next iteration ...")
+
+				// DEBUG:
+				//ticker.Stop()
+				//cancel()
+			}
 		}
-		services.Quit()
+	}(ticker)
 
-		log.Println("Too many requests. Trying to reconnect with new proxy ...")
+	<-ctx.Done()
 
-		err = workers.ConnectWithGeneratedProxy(services.Selenium, config.SeleniumUrl, proxiesManager.Next())
-		if err != nil {
-			log.Println("Web driver reconnect error:", err)
-			cancel()
-		}
-		log.Println("Web driver reconnected with new proxy: ", proxiesManager.Current().Host)
-	})
-
-	// TODO: <-ctx
-
-	log.Println("App stopped ")
-}
-
-func startPeriodicTask(ctx context.Context, ticker *time.Ticker, f func()) {
-	f()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			f()
-		}
-	}
+	log.Println("App stopped")
 }
 
 func handleDoneSigs(cancel context.CancelFunc) {

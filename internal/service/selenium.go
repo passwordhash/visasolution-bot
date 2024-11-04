@@ -145,10 +145,6 @@ func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath strin
 	return err
 }
 
-func (s *SeleniumService) Parse(url string) error {
-	return s.wd.Get(url)
-}
-
 // TEMP: for easy testing
 func (s *SeleniumService) Wd() selenium.WebDriver {
 	return s.wd
@@ -207,8 +203,8 @@ func (s *SeleniumService) Refresh() error {
 	return s.wd.Refresh()
 }
 
-func (s *SeleniumService) Quit() {
-	s.wd.Quit()
+func (s *SeleniumService) Quit() error {
+	return s.wd.Quit()
 }
 
 // PullPageScreenshot делает скриншот текущей страницы

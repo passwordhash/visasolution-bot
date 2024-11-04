@@ -15,7 +15,6 @@ type Selenium interface {
 	GetCookies() ([]selenium.Cookie, error)
 	SetCookies(cookies []selenium.Cookie) error
 	DeleteCookie(key string) error
-	Parse(url string) error
 	MaximizeWindow() error
 
 	GoTo(url string) error
@@ -36,7 +35,7 @@ type Selenium interface {
 	BookNewAppointment() error
 	CheckAvailability() (bool, error)
 
-	Quit()
+	Quit() error
 }
 
 type Chat interface {

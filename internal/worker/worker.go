@@ -14,7 +14,13 @@ import (
 )
 
 // TooManyRequestsErr ошибка, возникающая при превышении лимита запросов к ресурсу
-var TooManyRequestsErr = fmt.Errorf("too many requests")
+type TooManyRequestsErr struct {
+	Msg string
+}
+
+func (e TooManyRequestsErr) Error() string {
+	return fmt.Sprintf("too many requests error: %s", e.Msg)
+}
 
 type Deps struct {
 	BaseURL     string
@@ -72,14 +78,14 @@ func (w *Worker) Run() error {
 	//}
 
 	// Selenium parse page
-	if err := w.services.Parse(w.d.BaseURL); err != nil {
+	if err := w.services.GoTo(w.d.BaseURL); err != nil {
 		return fmt.Errorf("page parse error:%w", err)
 	}
 	log.Println("Web page parsed")
 
 	// Page test
 	if err := w.services.Selenium.TestPage(); err != nil {
-		return TooManyRequestsErr
+		return TooManyRequestsErr{Msg: "test page error"}
 	}
 	log.Println("Page successfully loaded")
 
@@ -95,7 +101,8 @@ func (w *Worker) Run() error {
 
 	// Go to visa type verification page
 	if err := w.services.Selenium.GoTo(w.d.BaseURL + w.d.VisaTypeURL); err != nil {
-		return fmt.Errorf("go to visa type verification page error:%w", err)
+		//return fmt.Errorf("go to visa type verification page error:%w", err)
+		return TooManyRequestsErr{Msg: "go to visa type verification page error"}
 	}
 
 	isAuthorized, _ := w.services.Selenium.IsAuthorized(w.d.BaseURL + w.d.VisaTypeURL)

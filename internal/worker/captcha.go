@@ -27,7 +27,8 @@ func (w *Worker) RetryProcessCaptcha(maxTries int) error {
 			continue
 		}
 		// Если ошибка возникла не из-за неверного выбора, то скорее всего сервер забанил (Too many requests)
-		return TooManyRequestsErr
+		//return TooManyRequestsErr
+		return err
 	}
 	return fmt.Errorf("couldnt solve captcha after %d tries", maxTries)
 }
