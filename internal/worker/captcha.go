@@ -19,7 +19,6 @@ func (w *Worker) RetryProcessCaptcha(maxTries int) error {
 	for cntTries := 1; cntTries <= maxTries; cntTries++ {
 		log.Printf("try No %d to solve the captcha starts ...\n", cntTries)
 		err := w.processCaptcha()
-		log.Printf("try No %d to solve the captcha ended\n", cntTries)
 		if err == nil {
 			return nil
 		}
@@ -27,7 +26,8 @@ func (w *Worker) RetryProcessCaptcha(maxTries int) error {
 			log.Println("invalid selection error, try again")
 			continue
 		}
-		return fmt.Errorf("solve captcha error in try №%d:%w\n", cntTries, err)
+		// Если ошибка возникла не из-за неверного выбора, то скорее всего сервер забанил (Too many requests)
+		return TooManyRequestsErr
 	}
 	return fmt.Errorf("couldnt solve captcha after %d tries", maxTries)
 }

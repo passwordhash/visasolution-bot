@@ -2,14 +2,19 @@ package worker
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/tebeka/selenium"
 	"log"
 	"os"
 	"time"
+	cfg "visasolution/internal/config"
 	"visasolution/internal/service"
 	"visasolution/pkg/util"
 )
+
+// TooManyRequestsErr ошибка, возникающая при превышении лимита запросов к ресурсу
+var TooManyRequestsErr = fmt.Errorf("too many requests")
 
 type Deps struct {
 	BaseURL     string
@@ -43,12 +48,28 @@ func (w *Worker) MakePreparation() error {
 	return nil
 }
 
+func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, proxy cfg.Proxy) error {
+	extensionPath, err := w.GenerateProxyAuthExtension(proxy)
+	if err != nil {
+		// TODO: Подумать над возвращением ошибки
+		log.Println("Generate proxy auth extension error:", err)
+	}
+
+	err = connector.ConnectWithProxy("", extensionPath)
+	if err != nil {
+		return fmt.Errorf("selenium connect with proxy error:%w", err)
+	}
+
+	return nil
+}
+
 // Run должен быть вызван только после инициализации всех сервисов
 func (w *Worker) Run() error {
+	// TODO: подумать над релевантностью
 	// Chat api test
-	if err := w.services.Chat.TestConnection(); err != nil {
-		return fmt.Errorf("chat api connection error:%w", err)
-	}
+	//if err := w.services.Chat.TestConnection(); err != nil {
+	//	return fmt.Errorf("chat api connection error:%w", err)
+	//}
 
 	// Selenium parse page
 	if err := w.services.Parse(w.d.BaseURL); err != nil {
@@ -58,7 +79,7 @@ func (w *Worker) Run() error {
 
 	// Page test
 	if err := w.services.Selenium.TestPage(); err != nil {
-		return fmt.Errorf("page load test error:%w", err)
+		return TooManyRequestsErr
 	}
 	log.Println("Page successfully loaded")
 
@@ -85,7 +106,11 @@ func (w *Worker) Run() error {
 		}
 
 		log.Println("Retry process first captcha starts ...")
-		if err := w.RetryProcessCaptcha(w.d.CaptchaMaxTries); err != nil {
+		err := w.RetryProcessCaptcha(w.d.CaptchaMaxTries)
+		if errors.Is(err, service.InvalidSelectionError) {
+			return service.InvalidSelectionError
+		}
+		if err != nil {
 			return fmt.Errorf("retry process first captcha error:%w", err)
 		}
 		log.Println("Retry process first captcha successfully ended")
@@ -124,8 +149,12 @@ func (w *Worker) Run() error {
 	time.Sleep(time.Second * 3)
 
 	log.Println("Retry process second captcha starts ...")
-	if err := w.RetryProcessCaptcha(w.d.CaptchaMaxTries); err != nil {
-		return fmt.Errorf("retry process second captcha error:%w", err)
+	err := w.RetryProcessCaptcha(w.d.CaptchaMaxTries)
+	if errors.Is(err, service.InvalidSelectionError) {
+		return service.InvalidSelectionError
+	}
+	if err != nil {
+		return fmt.Errorf("retry process first captcha error:%w", err)
 	}
 	log.Println("Retry process second captcha successfully ended")
 

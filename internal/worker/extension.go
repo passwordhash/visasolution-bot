@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"path"
 	"visasolution/internal/config"
 	"visasolution/pkg/util"
 )
@@ -64,20 +65,20 @@ chrome.webRequest.onAuthRequired.addListener(
 
 // GenerateProxyAuthExtension приминает прокси в виде "ip:host@usrname:pswrd"
 func (w *Worker) GenerateProxyAuthExtension(proxy config.Proxy) (string, error) {
-	path := w.chromeExtensionPath()
+	extensionPath := w.chromeExtensionPath()
 
 	filenames := []string{"manifest.json", "background.js"}
 	manifestContent := []byte(fmt.Sprintf(manifest))
 	backgroundJSContent := []byte(fmt.Sprintf(backgroundJS, proxy.Host, proxy.Port, proxy.Username, proxy.Password))
 
-	err := util.CreateZip(filenames, [][]byte{manifestContent, backgroundJSContent}, path)
+	err := util.CreateZip(filenames, [][]byte{manifestContent, backgroundJSContent}, extensionPath)
 	if err != nil {
 		return "", fmt.Errorf("error creating ZIP file: %v", err)
 	}
 
-	return path, nil
+	return extensionPath, nil
 }
 
 func (w *Worker) chromeExtensionPath() string {
-	return w.d.TmpFolder + chromeExtensionFilename
+	return path.Join(w.d.TmpFolder, chromeExtensionFilename)
 }

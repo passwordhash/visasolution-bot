@@ -29,14 +29,14 @@ type proxiesConfig struct {
 //	}
 func ParseProxiesFile(proxiesFile []byte) ([]Proxy, error) {
 	var proxies []Proxy
-	var proxiesRow []string
+	var proxisConfig proxiesConfig
 
-	err := json.Unmarshal(proxiesFile, &proxiesRow)
+	err := json.Unmarshal(proxiesFile, &proxisConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse proxies file: %w", err)
 	}
 
-	for _, proxyRow := range proxiesRow {
+	for _, proxyRow := range proxisConfig.RussianProxies {
 		proxy, err := parseProxy(proxyRow)
 		if err != nil {
 			log.Printf("failed to parse proxy: %v", err)

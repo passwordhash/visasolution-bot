@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -38,6 +39,9 @@ const mainLoopIntervalM = 8
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
+var currentProxyIndex = 0
+var proxiesCnt int
+
 func main() {
 	logFile, err := setupLogger()
 	if err != nil {
@@ -59,6 +63,7 @@ func main() {
 	if err != nil {
 		log.Println("Failed to load proxies from JSON:", err)
 	}
+	proxiesCnt = len(proxies)
 
 	services := service.NewService(service.Deps{
 		BaseURL:           baseURL,
@@ -100,17 +105,10 @@ func main() {
 	}
 	log.Println("Chat api client inited")
 
-	// Generate proxy auth extension
-	extensionPath, err := workers.GenerateProxyAuthExtension(proxies[0])
+	// Connect to web driver with proxy
+	err = workers.ConnectWithGeneratedProxy(services.Selenium, proxies[0])
 	if err != nil {
-		log.Println("Generate proxy auth extension error:", err)
-	}
-
-	// Selenium connect
-	err = services.Selenium.ConnectWithProxy(config.SeleniumUrl, extensionPath)
-	if err != nil {
-		log.Println("Web driver connection error: ", err)
-		return
+		log.Fatalln("Web driver connection error:", err)
 	}
 	log.Println("Web driver connected")
 	defer services.Quit()
@@ -120,6 +118,11 @@ func main() {
 	// Main loop
 	startPeriodicTask(ctx, mainLoopIntervalM*time.Minute, func() {
 		err := workers.Run()
+		if errors.Is(err, worker.TooManyRequestsErr) {
+			log.Println("Too many requests. Trying to reconnect with new proxy ...")
+			services.Quit()
+			err = workers.ConnectWithGeneratedProxy(services.Selenium, proxies[1])
+		}
 		if err != nil {
 			log.Println("Main loop error:", err)
 		}

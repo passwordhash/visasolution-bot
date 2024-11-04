@@ -5,6 +5,10 @@ import (
 	"github.com/tebeka/selenium"
 )
 
+type ProxyConnecter interface {
+	ConnectWithProxy(url, extansionPath string) error
+}
+
 type Selenium interface {
 	Connect(url string) error
 	ConnectWithProxy(url, extansionPath string) error

@@ -17,6 +17,8 @@ RUN go build -o main cmd/bot/main.go
 FROM base
 
 COPY .env /app/.env
+COPY proxies.json /app/proxies.json
+
 COPY --from=build /app/main /app/main
 COPY --from=build /app/assets /app/assets
 
