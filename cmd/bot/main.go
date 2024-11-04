@@ -39,9 +39,6 @@ const mainLoopIntervalM = 8
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
-var currentProxyIndex = 0
-var proxiesCnt int
-
 func main() {
 	logFile, err := setupLogger()
 	if err != nil {
@@ -59,11 +56,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	proxies, err := laodProxies(proxiesFilePath)
+	proxiesManager, err := laodProxies(proxiesFilePath)
 	if err != nil {
 		log.Println("Failed to load proxies from JSON:", err)
 	}
-	proxiesCnt = len(proxies)
 
 	services := service.NewService(service.Deps{
 		BaseURL:           baseURL,
@@ -98,15 +94,13 @@ func main() {
 		log.Fatalln("Make preparation error:", err)
 	}
 
-	// Chat client init
 	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
 	if err != nil {
 		log.Fatalln("Chat client init error:", err)
 	}
 	log.Println("Chat api client inited")
 
-	// Connect to web driver with proxy
-	err = workers.ConnectWithGeneratedProxy(services.Selenium, proxies[0])
+	err = workers.ConnectWithGeneratedProxy(services.Selenium, proxiesManager.Next())
 	if err != nil {
 		log.Fatalln("Web driver connection error:", err)
 	}
@@ -115,13 +109,12 @@ func main() {
 
 	defer workers.SaveCookies()
 
-	// Main loop
 	startPeriodicTask(ctx, mainLoopIntervalM*time.Minute, func() {
 		err := workers.Run()
 		if errors.Is(err, worker.TooManyRequestsErr) {
 			log.Println("Too many requests. Trying to reconnect with new proxy ...")
 			services.Quit()
-			err = workers.ConnectWithGeneratedProxy(services.Selenium, proxies[1])
+			err = workers.ConnectWithGeneratedProxy(services.Selenium, proxiesManager.Next())
 		}
 		if err != nil {
 			log.Println("Main loop error:", err)
@@ -129,14 +122,13 @@ func main() {
 		log.Println("Waiting for the next iteration ...")
 	})
 
-	log.Println("INFO: app stopped ")
+	log.Println("App stopped ")
 }
 
 func startPeriodicTask(ctx context.Context, interval time.Duration, f func()) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	// DEBUG:
 	f()
 
 	for {
@@ -179,7 +171,7 @@ func setupLogger() (*os.File, error) {
 	return logFile, nil
 }
 
-func laodProxies(filePath string) ([]cfg.Proxy, error) {
+func laodProxies(filePath string) (*cfg.ProxiesManager, error) {
 	proxiesFile, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read proxies file: %v", err)

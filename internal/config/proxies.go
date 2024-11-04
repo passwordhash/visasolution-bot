@@ -7,6 +7,16 @@ import (
 	"strings"
 )
 
+type ProxiesManager struct {
+	proxies   []Proxy
+	currIndex int
+}
+
+func (p ProxiesManager) Next() Proxy {
+	p.currIndex = (p.currIndex + 1) % len(p.proxies)
+	return p.proxies[p.currIndex]
+}
+
 type Proxy struct {
 	Host     string
 	Port     string
@@ -27,7 +37,7 @@ type proxiesConfig struct {
 //	    "ip:host@usrname:pswrd"
 //	  ]
 //	}
-func ParseProxiesFile(proxiesFile []byte) ([]Proxy, error) {
+func ParseProxiesFile(proxiesFile []byte) (*ProxiesManager, error) {
 	var proxies []Proxy
 	var proxisConfig proxiesConfig
 
@@ -45,7 +55,7 @@ func ParseProxiesFile(proxiesFile []byte) ([]Proxy, error) {
 		proxies = append(proxies, proxy)
 	}
 
-	return proxies, nil
+	return &ProxiesManager{proxies: proxies}, nil
 }
 
 // parseProxy приминает прокси в виде "ip:host@usrname:pswrd" и возвращает структуру Proxy
