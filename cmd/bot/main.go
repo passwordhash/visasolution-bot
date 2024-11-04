@@ -35,7 +35,7 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-const mainLoopIntervalM = 1
+const mainLoopIntervalM = 30
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
@@ -111,22 +111,9 @@ func main() {
 
 	// Main ticker interval
 	ticker := time.NewTicker(mainLoopIntervalM * time.Minute)
-	skip := make(chan struct{})
-	defer ticker.Stop()
-
-	// TEMP:
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				return
-			case <-skip:
-				fmt.Println("Skip")
-			}
-		}
-	}()
 
 	startPeriodicTask(ctx, ticker, func() {
+		ticker = time.NewTicker(mainLoopIntervalM * time.Minute)
 		defer log.Println("Waiting for the next iteration ...")
 
 		err := workers.Run()
@@ -144,8 +131,9 @@ func main() {
 			cancel()
 		}
 		log.Println("Web driver reconnected with new proxy: ", proxiesManager.Current().Host)
-		skip <- struct{}{}
 	})
+
+	// TODO: <-ctx
 
 	log.Println("App stopped ")
 }

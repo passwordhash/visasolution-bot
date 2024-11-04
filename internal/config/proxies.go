@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"strings"
 )
 
@@ -12,13 +13,22 @@ type ProxiesManager struct {
 	currIndex int
 }
 
-func (p ProxiesManager) Current() Proxy {
+func (p *ProxiesManager) Prxies() []Proxy {
+	return p.proxies
+}
+
+func (p *ProxiesManager) Current() Proxy {
 	return p.proxies[p.currIndex]
 }
 
-func (p ProxiesManager) Next() Proxy {
-	p.currIndex = (p.currIndex + 1) % len(p.proxies)
-	return p.proxies[p.currIndex]
+//func (p ProxiesManager) Next() Proxy {
+//	p.currIndex = (p.currIndex + 1) % len(p.proxies)
+//	return p.proxies[p.currIndex]
+//}
+
+func (p *ProxiesManager) Next() Proxy {
+	l := len(p.proxies) - 1
+	return p.proxies[rand.Intn(l-p.currIndex)+p.currIndex]
 }
 
 type Proxy struct {
