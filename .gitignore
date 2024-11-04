@@ -5,3 +5,4 @@ tmp/*
 go.mod
 go.sum
 **/*.log
+proxies.json

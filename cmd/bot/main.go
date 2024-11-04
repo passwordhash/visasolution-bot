@@ -21,6 +21,7 @@ const (
 )
 
 const (
+	proxiesFilePath    = "./proxies.json"
 	logFolder          = "logs/"
 	logFilename        = "app.log"
 	tmpFolder          = "tmp/"
@@ -52,6 +53,11 @@ func main() {
 	config, err := cfg.LoadConfig()
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	proxies, err := laodProxies(proxiesFilePath)
+	if err != nil {
+		log.Println("Failed to load proxies from JSON:", err)
 	}
 
 	services := service.NewService(service.Deps{
@@ -95,7 +101,7 @@ func main() {
 	log.Println("Chat api client inited")
 
 	// Generate proxy auth extension
-	extensionPath, err := workers.GenerateProxyAuthExtension(config.ProxyRow)
+	extensionPath, err := workers.GenerateProxyAuthExtension(proxies[0])
 	if err != nil {
 		log.Println("Generate proxy auth extension error:", err)
 	}
@@ -108,6 +114,7 @@ func main() {
 	}
 	log.Println("Web driver connected")
 	defer services.Quit()
+
 	defer workers.SaveCookies()
 
 	// Main loop
@@ -167,4 +174,12 @@ func setupLogger() (*os.File, error) {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	return logFile, nil
+}
+
+func laodProxies(filePath string) ([]cfg.Proxy, error) {
+	proxiesFile, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read proxies file: %v", err)
+	}
+	return cfg.ParseProxiesFile(proxiesFile)
 }

@@ -1,0 +1,5 @@
+{
+    "russian_proxies": [
+        "host:port@login:password"
+    ]
+}

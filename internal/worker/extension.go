@@ -2,7 +2,7 @@ package worker
 
 import (
 	"fmt"
-	"strings"
+	"visasolution/internal/config"
 	"visasolution/pkg/util"
 )
 
@@ -62,47 +62,15 @@ chrome.webRequest.onAuthRequired.addListener(
 );
 `
 
-type Proxy struct {
-	Host     string
-	Port     string
-	Username string
-	Password string
-}
-
-// ParseProxy приминает прокси в виде "ip:host@usrname:pswrd" и возвращает структуру Proxy
-func ParseProxy(proxyRow string) (Proxy, error) {
-	parts := strings.Split(proxyRow, "@")
-	if len(parts) != 2 {
-		return Proxy{}, fmt.Errorf("invalid proxy format, expected 'ip:port@username:password'")
-	}
-
-	ipPortParts := strings.Split(parts[0], ":")
-	authParts := strings.Split(parts[1], ":")
-	if len(ipPortParts) != 2 || len(authParts) != 2 {
-		return Proxy{}, fmt.Errorf("invalid format")
-	}
-
-	return Proxy{
-		Host:     ipPortParts[0],
-		Port:     ipPortParts[1],
-		Username: authParts[0],
-		Password: authParts[1],
-	}, nil
-}
-
 // GenerateProxyAuthExtension приминает прокси в виде "ip:host@usrname:pswrd"
-func (w *Worker) GenerateProxyAuthExtension(proxyRow string) (string, error) {
+func (w *Worker) GenerateProxyAuthExtension(proxy config.Proxy) (string, error) {
 	path := w.chromeExtensionPath()
-	proxy, err := ParseProxy(proxyRow)
-	if err != nil {
-		return "", err
-	}
 
 	filenames := []string{"manifest.json", "background.js"}
 	manifestContent := []byte(fmt.Sprintf(manifest))
 	backgroundJSContent := []byte(fmt.Sprintf(backgroundJS, proxy.Host, proxy.Port, proxy.Username, proxy.Password))
 
-	err = util.CreateZip(filenames, [][]byte{manifestContent, backgroundJSContent}, path)
+	err := util.CreateZip(filenames, [][]byte{manifestContent, backgroundJSContent}, path)
 	if err != nil {
 		return "", fmt.Errorf("error creating ZIP file: %v", err)
 	}
