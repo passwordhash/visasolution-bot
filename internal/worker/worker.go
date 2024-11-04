@@ -48,14 +48,14 @@ func (w *Worker) MakePreparation() error {
 	return nil
 }
 
-func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, proxy cfg.Proxy) error {
+func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, connectUrl string, proxy cfg.Proxy) error {
 	extensionPath, err := w.GenerateProxyAuthExtension(proxy)
 	if err != nil {
 		// TODO: Подумать над возвращением ошибки
 		log.Println("Generate proxy auth extension error:", err)
 	}
 
-	err = connector.ConnectWithProxy("", extensionPath)
+	err = connector.ConnectWithProxy(connectUrl, extensionPath)
 	if err != nil {
 		return fmt.Errorf("selenium connect with proxy error:%w", err)
 	}

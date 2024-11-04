@@ -100,9 +100,7 @@ func main() {
 	}
 	log.Println("Chat api client inited")
 
-	p := proxiesManager.Next()
-	log.Println(p)
-	err = workers.ConnectWithGeneratedProxy(services.Selenium, p)
+	err = workers.ConnectWithGeneratedProxy(services.Selenium, config.SeleniumUrl, proxiesManager.Next())
 	if err != nil {
 		log.Fatalln("Web driver connection error:", err)
 	}
@@ -125,7 +123,7 @@ func main() {
 
 		log.Println("Too many requests. Trying to reconnect with new proxy ...")
 
-		err = workers.ConnectWithGeneratedProxy(services.Selenium, proxiesManager.Next())
+		err = workers.ConnectWithGeneratedProxy(services.Selenium, config.SeleniumUrl, proxiesManager.Next())
 		if err != nil {
 			log.Println("Web driver reconnect error:", err)
 			cancel()
