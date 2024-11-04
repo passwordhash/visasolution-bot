@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"os"
 	"strconv"
@@ -12,9 +13,8 @@ type Config struct {
 	BlsEmail    string
 	BlsPassword string
 
-	ChatApiKey      string
-	ProxyRow        string
-	ProxyRowForeign string
+	ChatApiKey   string
+	ProxyForeign Proxy
 
 	ImgurClientId     string
 	ImgurClientSecret string
@@ -31,15 +31,23 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 
-	smtpPort, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	smtpPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to parse smtp port: %w", err)
+	}
+
+	proxyRowForeign := os.Getenv("PROXY_ROW_FOREIGN")
+	proxyForeign, err := ParseProxy(proxyRowForeign)
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to parse foregin proxy row: %w", err)
+	}
 
 	return Config{
 		SeleniumUrl:       os.Getenv("SELENIUM_URL"),
 		BlsEmail:          os.Getenv("BLS_EMAIL"),
 		BlsPassword:       os.Getenv("BLS_PASSWORD"),
 		ChatApiKey:        os.Getenv("CHAT_API_KEY"),
-		ProxyRow:          os.Getenv("PROXY_ROW_RUSSIA"),
-		ProxyRowForeign:   os.Getenv("PROXY_ROW_FOREIGN"),
+		ProxyForeign:      proxyForeign,
 		ImgurClientId:     os.Getenv("IMGUR_CLIENT_ID"),
 		ImgurClientSecret: os.Getenv("IMGUR_CLIENT_SECRET"),
 		SmtpHost:          os.Getenv("SMTP_HOST"),

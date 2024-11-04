@@ -8,6 +8,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	cfg "visasolution/internal/config"
+	pkgService "visasolution/pkg/service"
 )
 
 type ImgurResponse struct {
@@ -23,9 +25,25 @@ type ImgurData struct {
 type ImageService struct {
 	clientId     string
 	clientSecret string
+	client       *http.Client
 }
 
-func (i ImageService) UploadImage(imagePath string) (string, error) {
+func NewImageService(clientId string, clientSecret string) *ImageService {
+	return &ImageService{clientId: clientId, clientSecret: clientSecret}
+}
+
+func (i *ImageService) ClientInitWithProxy(proxy cfg.Proxy) error {
+	transport, err := pkgService.ProxyTransport(proxy.URL())
+	if err != nil {
+		return fmt.Errorf("new transport with proxy error: %v", err)
+	}
+
+	i.client = &http.Client{Transport: transport}
+
+	return nil
+}
+
+func (i *ImageService) UploadImage(imagePath string) (string, error) {
 	file, err := os.Open(imagePath)
 	if err != nil {
 		return "", err
@@ -54,8 +72,7 @@ func (i ImageService) UploadImage(imagePath string) (string, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Client-ID %s", i.clientId))
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := i.client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("client do error: %v", err)
 	}
@@ -77,8 +94,4 @@ func (i ImageService) UploadImage(imagePath string) (string, error) {
 	}
 
 	return imgurResp.Data.Link, nil
-}
-
-func NewImageService(clientId string, clientSecret string) *ImageService {
-	return &ImageService{clientId: clientId, clientSecret: clientSecret}
 }

@@ -3,10 +3,15 @@ package service
 import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/tebeka/selenium"
+	cfg "visasolution/internal/config"
 )
 
 type ProxyConnecter interface {
 	ConnectWithProxy(url, extansionPath string) error
+}
+
+type Proxier interface {
+	ClientInitWithProxy(proxy cfg.Proxy) error
 }
 
 type Selenium interface {
@@ -20,6 +25,7 @@ type Selenium interface {
 	GoTo(url string) error
 	Refresh() error
 
+	// DEBUG:
 	Wd() selenium.WebDriver
 	TestPage() error
 
@@ -43,11 +49,12 @@ type Chat interface {
 	GetRespMsg(resp openai.ChatCompletionResponse) string
 	Request3DOT5Turbo(content string) (openai.ChatCompletionResponse, error)
 	Request4VPreviewWithImage(content, imageUrl string) (openai.ChatCompletionResponse, error)
-	ClientInitWithProxy(proxy string) error
+	Proxier
 }
 
 type Image interface {
-	UploadImage(url string) (string, error)
+	Proxier
+	UploadImage(imagePath string) (string, error)
 }
 
 type Email interface {

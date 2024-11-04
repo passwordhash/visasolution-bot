@@ -12,6 +12,10 @@ type ProxiesManager struct {
 	currIndex int
 }
 
+type proxiesConfig struct {
+	RussianProxies []string `json:"russian_proxies"`
+}
+
 func (p *ProxiesManager) Proxies() []Proxy {
 	return p.proxies
 }
@@ -32,8 +36,9 @@ type Proxy struct {
 	Password string
 }
 
-type proxiesConfig struct {
-	RussianProxies []string `json:"russian_proxies"`
+// URL возвращает строку вида "http://username:password@host:port"
+func (p *Proxy) URL() string {
+	return fmt.Sprintf("http://%s:%s@%s:%s", p.Username, p.Password, p.Host, p.Port)
 }
 
 // ParseProxiesFile принимает содержимое файла с прокси и возвращает слайс из Proxy.
@@ -55,7 +60,7 @@ func ParseProxiesFile(proxiesFile []byte) (*ProxiesManager, error) {
 	}
 
 	for _, proxyRow := range proxisConfig.RussianProxies {
-		proxy, err := parseProxy(proxyRow)
+		proxy, err := ParseProxy(proxyRow)
 		if err != nil {
 			log.Printf("failed to parse proxy: %v", err)
 			continue
@@ -66,8 +71,8 @@ func ParseProxiesFile(proxiesFile []byte) (*ProxiesManager, error) {
 	return &ProxiesManager{proxies: proxies}, nil
 }
 
-// parseProxy приминает прокси в виде "ip:host@usrname:pswrd" и возвращает структуру Proxy
-func parseProxy(proxyRow string) (Proxy, error) {
+// ParseProxy приминает прокси в виде "ip:host@usrname:pswrd" и возвращает структуру Proxy
+func ParseProxy(proxyRow string) (Proxy, error) {
 	parts := strings.Split(proxyRow, "@")
 	if len(parts) != 2 {
 		return Proxy{}, fmt.Errorf("invalid proxy format, expected 'ip:port@username:password'")

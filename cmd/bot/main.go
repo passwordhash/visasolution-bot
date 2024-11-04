@@ -35,7 +35,7 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-const mainLoopIntervalM = 3
+const mainLoopIntervalM = 10
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
@@ -93,11 +93,16 @@ func main() {
 		log.Fatalln("Make preparation error:", err)
 	}
 
-	err = services.Chat.ClientInitWithProxy(config.ProxyRowForeign)
+	err = services.Chat.ClientInitWithProxy(config.ProxyForeign)
 	if err != nil {
 		log.Fatalln("Chat client init error:", err)
 	}
 	log.Println("Chat api client inited")
+
+	err = services.Image.ClientInitWithProxy(proxiesManager.Current())
+	if err != nil {
+		log.Fatalln("Image client init error:", err)
+	}
 
 	err = workers.ConnectWithGeneratedProxy(services.Selenium, config.SeleniumUrl, proxiesManager.Next())
 	if err != nil {
@@ -108,8 +113,8 @@ func main() {
 
 	defer workers.SaveCookies()
 
-	ticker := time.NewTicker(mainLoopIntervalM * time.Minute)
-	//ticker := time.NewTicker(1)
+	//ticker := time.NewTicker(mainLoopIntervalM * time.Minute)
+	ticker := time.NewTicker(1)
 
 	go func(ticker *time.Ticker) {
 		for {
@@ -141,8 +146,8 @@ func main() {
 				log.Println("Waiting for the next iteration ...")
 
 				// DEBUG:
-				//ticker.Stop()
-				//cancel()
+				ticker.Stop()
+				cancel()
 			}
 		}
 	}(ticker)
