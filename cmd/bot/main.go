@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -35,11 +36,32 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-const mainLoopIntervalM = 10
+var (
+	mainLoopIntervalM        int
+	availbilityNotifiedEmail string
+)
 
-const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
+const defaultMainLoopIntervalM = 30
+
+func init() {
+	flag.IntVar(&mainLoopIntervalM, "interval", defaultMainLoopIntervalM, "Main loop interval in minutes")
+	flag.StringVar(&availbilityNotifiedEmail, "email", "", "Email for availability notifications. Required")
+
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+}
 
 func main() {
+	flag.Parse()
+
+	if availbilityNotifiedEmail == "" {
+		fmt.Fprintf(flag.CommandLine.Output(), "Email is required\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	logFile, err := setupLogger()
 	if err != nil {
 		log.Fatalln("Failed to setup logger:", err)

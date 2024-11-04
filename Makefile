@@ -19,7 +19,6 @@ docker-compose-down:
 	docker compose down
 
 run-app:
-	-docker run --rm -d -p=4444:4444 --shm-size=2g -v /Users/yaroslav/code/projects/visasolution/volumes:/home/seluser/Downloads selenium/standalone-chrome
+	-docker run --rm -d -p=4444:4444 --shm-size=2g selenium/standalone-chrome
 	go run ./cmd/bot/main.go
 
-#docker run --rm -p=4444:4444 --shm-size=2g -v /Users/yaroslav/code/projects/visasolution/volumes:/home/seluser/Downloads selenium/standalone-chrome
