@@ -35,7 +35,7 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-const mainLoopIntervalM = 8
+const mainLoopIntervalM = 3
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
@@ -100,7 +100,9 @@ func main() {
 	}
 	log.Println("Chat api client inited")
 
-	err = workers.ConnectWithGeneratedProxy(services.Selenium, proxiesManager.Next())
+	p := proxiesManager.Next()
+	log.Println(p)
+	err = workers.ConnectWithGeneratedProxy(services.Selenium, p)
 	if err != nil {
 		log.Fatalln("Web driver connection error:", err)
 	}
@@ -109,15 +111,24 @@ func main() {
 
 	defer workers.SaveCookies()
 
-	startPeriodicTask(ctx, mainLoopIntervalM*time.Minute, func() {
+	// Main ticker interval
+	ticker := time.NewTicker(mainLoopIntervalM * time.Minute)
+	defer ticker.Stop()
+
+	startPeriodicTask(ctx, ticker, func() {
 		err := workers.Run()
-		if errors.Is(err, worker.TooManyRequestsErr) {
-			log.Println("Too many requests. Trying to reconnect with new proxy ...")
-			services.Quit()
-			err = workers.ConnectWithGeneratedProxy(services.Selenium, proxiesManager.Next())
-		}
-		if err != nil {
+		if !errors.Is(err, worker.TooManyRequestsErr) {
 			log.Println("Main loop error:", err)
+			return
+		}
+		services.Quit()
+
+		log.Println("Too many requests. Trying to reconnect with new proxy ...")
+
+		err = workers.ConnectWithGeneratedProxy(services.Selenium, proxiesManager.Next())
+		if err != nil {
+			log.Println("Web driver reconnect error:", err)
+			cancel()
 		}
 		log.Println("Waiting for the next iteration ...")
 	})
@@ -125,10 +136,7 @@ func main() {
 	log.Println("App stopped ")
 }
 
-func startPeriodicTask(ctx context.Context, interval time.Duration, f func()) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
+func startPeriodicTask(ctx context.Context, ticker *time.Ticker, f func()) {
 	f()
 
 	for {

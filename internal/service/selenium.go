@@ -134,7 +134,7 @@ func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath strin
 		if err != nil {
 			log.Println(err)
 			i++
-			time.Sleep(time.Second * 1)
+			time.Sleep(time.Second * 3)
 			continue
 		}
 		break
