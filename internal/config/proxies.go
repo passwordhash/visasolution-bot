@@ -12,6 +12,10 @@ type ProxiesManager struct {
 	currIndex int
 }
 
+func (p ProxiesManager) Current() Proxy {
+	return p.proxies[p.currIndex]
+}
+
 func (p ProxiesManager) Next() Proxy {
 	p.currIndex = (p.currIndex + 1) % len(p.proxies)
 	return p.proxies[p.currIndex]

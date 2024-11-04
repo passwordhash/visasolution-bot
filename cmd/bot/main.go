@@ -35,7 +35,7 @@ const (
 	processCaptchaMaxTries = 3
 )
 
-const mainLoopIntervalM = 3
+const mainLoopIntervalM = 1
 
 const availbilityNotifiedEmail = "iam@it-yaroslav.ru"
 
@@ -104,18 +104,33 @@ func main() {
 	if err != nil {
 		log.Fatalln("Web driver connection error:", err)
 	}
-	log.Println("Web driver connected")
+	log.Println("Web driver connected with proxy: ", proxiesManager.Current().Host)
 	defer services.Quit()
 
 	defer workers.SaveCookies()
 
 	// Main ticker interval
 	ticker := time.NewTicker(mainLoopIntervalM * time.Minute)
+	skip := make(chan struct{})
 	defer ticker.Stop()
 
+	// TEMP:
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				return
+			case <-skip:
+				fmt.Println("Skip")
+			}
+		}
+	}()
+
 	startPeriodicTask(ctx, ticker, func() {
+		defer log.Println("Waiting for the next iteration ...")
+
 		err := workers.Run()
-		if !errors.Is(err, worker.TooManyRequestsErr) {
+		if !errors.Is(err, worker.TooManyRequestsErr) && err != nil {
 			log.Println("Main loop error:", err)
 			return
 		}
@@ -128,7 +143,8 @@ func main() {
 			log.Println("Web driver reconnect error:", err)
 			cancel()
 		}
-		log.Println("Waiting for the next iteration ...")
+		log.Println("Web driver reconnected with new proxy: ", proxiesManager.Current().Host)
+		skip <- struct{}{}
 	})
 
 	log.Println("App stopped ")
@@ -153,7 +169,7 @@ func handleDoneSigs(cancel context.CancelFunc) {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-sigs
-	fmt.Println("Signal received:", sig)
+	log.Println("Signal received:", sig)
 
 	cancel()
 }

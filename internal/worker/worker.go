@@ -226,10 +226,6 @@ func (w *Worker) LoadCookies() error {
 // SaveCookies сохраняет куки в файл. Функция вызывается в defer
 func (w *Worker) SaveCookies() {
 	var cookies []selenium.Cookie
-	cooks, _ := w.services.Selenium.GetCookies()
-
-	// DEBUG:
-	fmt.Println("cookies: ", cooks)
 
 	// TODO: refactor
 	cookie, err := w.services.Wd().GetCookie(".AspNetCore.Cookies")

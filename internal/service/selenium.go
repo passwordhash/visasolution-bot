@@ -388,7 +388,6 @@ func (s *SeleniumService) BookNewAppointment() error {
 
 		input, err := el.FindElement(selenium.ByTagName, "input")
 		if err != nil {
-			fmt.Println("cannot find input children of displayed controls: %w", err)
 			continue
 		}
 
@@ -403,23 +402,14 @@ func (s *SeleniumService) BookNewAppointment() error {
 
 		sanitizedId := util2.WithoutDigits(id)
 
-		// DEBUG:
-		//fmt.Printf("ELEMENT %d by id '%s' ", i+1, sanitizedId)
-
 		keyDownCount := inputKeyDownCounts[sanitizedId]
 		if err := s.keyDownFor(keyDownCount, selenium.DownArrowKey); err != nil {
 			return fmt.Errorf("press arrow down error: %w", err)
 		}
 
-		// DEBUG:
-		//fmt.Println("arrow down times ", keyDownCount)
-
 		if err := s.wd.KeyDown(selenium.TabKey); err != nil {
 			return fmt.Errorf("press tabkey down error: %w", err)
 		}
-
-		// DEBUG:
-		//log.Println("tab pressed")
 	}
 
 	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentSubmitId); err != nil {
@@ -452,11 +442,6 @@ func (s *SeleniumService) CheckAvailability() (bool, error) {
 	}
 
 	isAvailable := !(strings.Contains(text, availabilityCheckMsg) || isDisplayed)
-
-	//DEBUG:
-	//fmt.Println("text: ", text)
-	//DEBUG:
-	//fmt.Println("is disply: ", isDisplayed)
 
 	return isAvailable, nil
 }
@@ -506,8 +491,6 @@ func (s *SeleniumService) waitAndClickButton(byWhat, value string) error {
 		if err == nil {
 			return nil
 		}
-		// DEBUG:
-		fmt.Println("wait and click error:", err)
 		time.Sleep(delay)
 	}
 	return fmt.Errorf("max tries exceeded:%w", err)
@@ -597,8 +580,6 @@ func (s *SeleniumService) keyDownFor(times int, key string) error {
 		if err := s.wd.KeyDown(key); err != nil {
 			return err
 		}
-		// DEBUG:
-		//fmt.Println("key downed")
 	}
 	return nil
 }
@@ -614,9 +595,6 @@ func (s *SeleniumService) getDisplayedFormControls() ([]selenium.WebElement, err
 		return nil, errors.New("no form controls found")
 	}
 
-	// DEBUG:
-	//log.Printf("len of form: %d\n", len(formControls))
-
 	formControlsDisplayed := make([]selenium.WebElement, 0)
 	for _, el := range formControls[2:] {
 		displayed, err := el.IsDisplayed()
@@ -627,9 +605,6 @@ func (s *SeleniumService) getDisplayedFormControls() ([]selenium.WebElement, err
 			formControlsDisplayed = append(formControlsDisplayed, el)
 		}
 	}
-
-	// DEBUG:
-	//log.Printf("len of form displayed: %d\n", len(formControlsDisplayed))
 
 	return formControlsDisplayed, nil
 }
