@@ -11,11 +11,7 @@ import (
 	util2 "visasolution/pkg/util"
 )
 
-const waitDuration = time.Second * 15
-
-const invalidSelectionMsg = "Invalid selection"
-
-var InvalidSelectionError = errors.New("captcha invalid selection")
+const authCookieKey = ".AspNetCore.Cookies"
 
 const (
 	captchaIFrameXPath         = `//*[@id="popup_1"]/iframe`
@@ -45,6 +41,10 @@ const tabsCountToFirstInput = 14
 
 const availabilityCheckMsg = "No Appointments Available"
 
+const invalidSelectionMsg = "Invalid selection"
+
+var InvalidSelectionError = errors.New("captcha invalid selection")
+
 // Нужное количество нажатий на стрелку вниз для выбора каждого элемента формы по id. -1 означает, что элемент не нужно выбирать
 var inputKeyDownCounts = map[string]int{
 	"self":                  -1,
@@ -60,54 +60,24 @@ type SeleniumService struct {
 	wd selenium.WebDriver
 
 	maxTries    int
+	seleniumURL string
 	blsEmail    string
 	blsPassword string
 }
 
-func NewSeleniumService(maxTries int, blsEmail string, blsPassword string) *SeleniumService {
-	return &SeleniumService{maxTries: maxTries, blsEmail: blsEmail, blsPassword: blsPassword}
-}
-
-// TODO: объединить функции Connect и ConnectWithProxy
-func (s *SeleniumService) Connect(url string) error {
-	var wd selenium.WebDriver
-	var err error
-
-	caps := selenium.Capabilities{
-		"browserName": "chrome",
+func NewSeleniumService(maxTries int, blsEmail string, seleniumURL string, blsPassword string) *SeleniumService {
+	return &SeleniumService{
+		maxTries:    maxTries,
+		blsEmail:    blsEmail,
+		seleniumURL: seleniumURL,
+		blsPassword: blsPassword,
 	}
-
-	chrCaps := chrome.Capabilities{
-		W3C: true,
-	}
-	caps.AddChrome(chrCaps)
-
-	// адрес нашего драйвера
-	urlPrefix := url
-	if url == "" {
-		urlPrefix = selenium.DefaultURLPrefix
-	}
-	i := 0
-	for i < s.maxTries {
-		wd, err = selenium.NewRemote(caps, urlPrefix)
-		if err != nil {
-			log.Println(err)
-			i++
-			time.Sleep(time.Second * 1)
-			continue
-		}
-		break
-	}
-
-	s.wd = wd
-
-	return err
 }
 
 // ConnectWithProxy подключается к selenium с прокси аутентификацией.
 // url - адрес нашего драйвера
 // chromeExtensionPath - путь к расширению для авторизации через прокси
-func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath string) error {
+func (s *SeleniumService) ConnectWithProxy(chromeExtensionPath string) error {
 	var wd selenium.WebDriver
 	var err error
 
@@ -123,9 +93,8 @@ func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath strin
 	}
 	caps.AddChrome(chrCaps)
 
-	// адрес нашего драйвера
-	urlPrefix := url
-	if url == "" {
+	urlPrefix := s.seleniumURL
+	if urlPrefix == "" {
 		urlPrefix = selenium.DefaultURLPrefix
 	}
 	i := 0
@@ -143,11 +112,6 @@ func (s *SeleniumService) ConnectWithProxy(url string, chromeExtensionPath strin
 	s.wd = wd
 
 	return err
-}
-
-// TEMP: for easy testing
-func (s *SeleniumService) Wd() selenium.WebDriver {
-	return s.wd
 }
 
 func (s *SeleniumService) TestPage() error {
@@ -178,7 +142,11 @@ func (s *SeleniumService) IsAuthorized(neededURL string) (bool, error) {
 	return curURL == neededURL, nil
 }
 
-func (s *SeleniumService) GetCookies() ([]selenium.Cookie, error) {
+func (s *SeleniumService) AuthCookie() (selenium.Cookie, error) {
+	return s.wd.GetCookie(authCookieKey)
+}
+
+func (s *SeleniumService) Cookies() ([]selenium.Cookie, error) {
 	return s.wd.GetCookies()
 }
 
@@ -193,6 +161,10 @@ func (s *SeleniumService) SetCookies(cookies []selenium.Cookie) error {
 
 func (s *SeleniumService) DeleteCookie(name string) error {
 	return s.wd.DeleteCookie(name)
+}
+
+func (s *SeleniumService) DeleteAllCookies() error {
+	return s.wd.DeleteAllCookies()
 }
 
 func (s *SeleniumService) MaximizeWindow() error {

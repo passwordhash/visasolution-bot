@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -11,7 +10,8 @@ import (
 	"os/signal"
 	"path"
 	"syscall"
-	"time"
+	"visasolution/internal/app"
+
 	cfg "visasolution/internal/config"
 	"visasolution/internal/service"
 	"visasolution/internal/worker"
@@ -32,60 +32,43 @@ const (
 )
 
 const (
-	maxTries               = 10
+	connectionMaxTries     = 10
 	processCaptchaMaxTries = 3
 )
+const defaultMainLoopIntervalM = 30
 
 var (
 	mainLoopIntervalM        int
 	availbilityNotifiedEmail string
 )
 
-const defaultMainLoopIntervalM = 30
-
-func init() {
-	flag.IntVar(&mainLoopIntervalM, "interval", defaultMainLoopIntervalM, "Main loop interval in minutes")
-	flag.StringVar(&availbilityNotifiedEmail, "email", "", "Email for availability notifications. Required")
-
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
-		flag.PrintDefaults()
-	}
-}
-
 func main() {
-	flag.Parse()
-
-	if availbilityNotifiedEmail == "" {
-		fmt.Fprintf(flag.CommandLine.Output(), "Email is required\n")
-		flag.Usage()
-		os.Exit(1)
-	}
+	parseFlags()
 
 	logFile, err := setupLogger()
 	if err != nil {
 		log.Fatalln("Failed to setup logger:", err)
 	}
 	defer logFile.Close()
-	log.Println("Logger inited")
+	log.Println("Logger initialized")
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go handleDoneSigs(cancel)
+	ctx, cancel := setupSignalHandler()
+	defer cancel()
 
 	config, err := cfg.LoadConfig()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	proxiesManager, err := laodProxies(proxiesFilePath)
+	proxiesManager, err := worker.LoadProxies(proxiesFilePath)
 	if err != nil {
 		log.Println("Failed to load proxies from JSON:", err)
 	}
 
 	services := service.NewService(service.Deps{
+		SeleniumURL:       config.SeleniumUrl,
 		BaseURL:           baseURL,
-		MaxTries:          maxTries,
+		MaxTries:          connectionMaxTries,
 		BlsEmail:          config.BlsEmail,
 		BlsPassword:       config.BlsPassword,
 		ChatApiKey:        config.ChatApiKey,
@@ -96,7 +79,7 @@ func main() {
 			Port:               config.SmtpPort,
 			Username:           config.SmtpUsername,
 			Password:           config.Password,
-			ScreenshotFilePath: tmpFolder + screenshotFilename,
+			ScreenshotFilePath: path.Join(tmpFolder, screenshotFilename),
 		},
 	})
 
@@ -110,6 +93,7 @@ func main() {
 		ScreenshotFile:  screenshotFilename,
 	})
 
+	// TODO: refactor
 	err = workers.MakePreparation()
 	if err != nil {
 		log.Fatalln("Make preparation error:", err)
@@ -119,80 +103,47 @@ func main() {
 	if err != nil {
 		log.Fatalln("Chat client init error:", err)
 	}
-	log.Println("Chat api client inited")
+	log.Println("Chat API client initialized")
 
 	err = services.Image.ClientInitWithProxy(proxiesManager.Current())
 	if err != nil {
 		log.Fatalln("Image client init error:", err)
 	}
+	log.Println("Image API client initialized")
 
-	err = workers.ConnectWithGeneratedProxy(services.Selenium, config.SeleniumUrl, proxiesManager.Next())
+	err = workers.ConnectWithGeneratedProxy(services.Selenium, proxiesManager.Current())
 	if err != nil {
 		log.Fatalln("Web driver connection error:", err)
 	}
-	log.Println("Web driver connected with proxy: ", proxiesManager.Current().Host)
+	log.Println("Web driver connected with proxy:", proxiesManager.Current().Host)
 	defer services.Quit()
-
 	defer workers.SaveCookies()
 
-	//ticker := time.NewTicker(mainLoopIntervalM * time.Minute)
-	ticker := time.NewTicker(1)
-
-	go func(ticker *time.Ticker) {
-		for {
-			select {
-			case <-ticker.C:
-				var banErr worker.TooManyRequestsErr
-				err := workers.Run()
-				if errors.As(err, &banErr) {
-					log.Println(banErr)
-					log.Println("Trying to reconnect with another proxy ...")
-
-					err = services.Selenium.Quit()
-					if err != nil {
-						log.Println("Web driver quit error:", err)
-					}
-
-					err = workers.ConnectWithGeneratedProxy(services.Selenium, config.SeleniumUrl, proxiesManager.Next())
-					if err != nil {
-						log.Println("Web driver reconnect error:", err)
-					}
-
-					log.Println("Web driver reconnected with new proxy: ", proxiesManager.Current().Host)
-					break
-				}
-				if err != nil {
-					log.Println("Main loop error:", err)
-				}
-
-				log.Println("Waiting for the next iteration ...")
-
-				// DEBUG:
-				ticker.Stop()
-				cancel()
-			}
-		}
-	}(ticker)
+	app.RunMainLoop(ctx, app.MainLoopDeps{
+		Workers:        workers,
+		Services:       services,
+		Config:         config,
+		ProxiesManager: proxiesManager,
+	}, mainLoopIntervalM)
 
 	<-ctx.Done()
-
-	log.Println("App stopped")
+	log.Println("App stopped gracefully")
 }
 
-func handleDoneSigs(cancel context.CancelFunc) {
-	sigs := make(chan os.Signal, 1)
-
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	sig := <-sigs
-	log.Println("Signal received:", sig)
-
-	cancel()
+func setupSignalHandler() (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signalChan
+		log.Println("Received interrupt signal, shutting down...")
+		cancel()
+	}()
+	return ctx, cancel
 }
 
 func setupLogger() (*os.File, error) {
-	err := os.MkdirAll(logFolder, os.ModePerm)
-	if err != nil {
+	if err := os.MkdirAll(logFolder, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("failed to create log folder: %v", err)
 	}
 
@@ -201,18 +152,26 @@ func setupLogger() (*os.File, error) {
 		return nil, fmt.Errorf("failed to open log file: %v", err)
 	}
 
-	multiWritter := io.MultiWriter(os.Stdout, logFile)
-
-	log.SetOutput(multiWritter)
+	multiWriter := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(multiWriter)
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	return logFile, nil
 }
 
-func laodProxies(filePath string) (*cfg.ProxiesManager, error) {
-	proxiesFile, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read proxies file: %v", err)
+// parseFlags парсит флаги командной строки
+// -email - email для уведомлений о доступности. Обязательный
+// -interval - интервал основного цикла в минутах
+func parseFlags() {
+	flag.IntVar(&mainLoopIntervalM, "interval", defaultMainLoopIntervalM, "Main loop interval in minutes")
+	flag.StringVar(&availbilityNotifiedEmail, "email", "", "Email for availability notifications. Required")
+	flag.Usage = func() {
+		fmt.Println("Usage: bot [options]")
+		flag.PrintDefaults()
 	}
-	return cfg.ParseProxiesFile(proxiesFile)
+	flag.Parse()
+
+	if availbilityNotifiedEmail == "" {
+		log.Fatal("Email for availability notifications is required")
+	}
 }

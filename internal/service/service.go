@@ -7,7 +7,8 @@ import (
 )
 
 type ProxyConnecter interface {
-	ConnectWithProxy(url, extansionPath string) error
+	// TODO
+	ConnectWithProxy(extansionPath string) error
 }
 
 type Proxier interface {
@@ -15,18 +16,17 @@ type Proxier interface {
 }
 
 type Selenium interface {
-	Connect(url string) error
-	ConnectWithProxy(url, extansionPath string) error
-	GetCookies() ([]selenium.Cookie, error)
+	ConnectWithProxy(extansionPath string) error
+	AuthCookie() (selenium.Cookie, error)
+	Cookies() ([]selenium.Cookie, error)
 	SetCookies(cookies []selenium.Cookie) error
 	DeleteCookie(key string) error
+	DeleteAllCookies() error
 	MaximizeWindow() error
 
 	GoTo(url string) error
 	Refresh() error
 
-	// DEBUG:
-	Wd() selenium.WebDriver
 	TestPage() error
 
 	IsAuthorized(neededURLPath string) (bool, error)
@@ -69,7 +69,8 @@ type Service struct {
 }
 
 type Deps struct {
-	BaseURL string
+	SeleniumURL string
+	BaseURL     string
 
 	MaxTries int
 
@@ -86,7 +87,7 @@ type Deps struct {
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		Selenium: NewSeleniumService(deps.MaxTries, deps.BlsEmail, deps.BlsPassword),
+		Selenium: NewSeleniumService(deps.MaxTries, deps.BlsEmail, deps.SeleniumURL, deps.BlsPassword),
 		Chat:     NewChatService(deps.ChatApiKey),
 		Image:    NewImageService(deps.ImgurClientId, deps.ImgurClientSecret),
 		Email:    NewEmailService(deps.EmailDeps),

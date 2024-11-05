@@ -54,14 +54,14 @@ func (w *Worker) MakePreparation() error {
 	return nil
 }
 
-func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, connectUrl string, proxy cfg.Proxy) error {
+func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, proxy cfg.Proxy) error {
 	extensionPath, err := w.GenerateProxyAuthExtension(proxy)
 	if err != nil {
 		// TODO: Подумать над возвращением ошибки
 		log.Println("Generate proxy auth extension error:", err)
 	}
 
-	err = connector.ConnectWithProxy(connectUrl, extensionPath)
+	err = connector.ConnectWithProxy(extensionPath)
 	if err != nil {
 		return fmt.Errorf("selenium connect with proxy error:%w", err)
 	}
@@ -69,14 +69,10 @@ func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, con
 	return nil
 }
 
-// Run должен быть вызван только после инициализации всех сервисов
+// Run должен быть вызван только после инициализации всех сервисов.
+// Функция выполняет основной алгоритм работы бота.
+// TODO: refactor
 func (w *Worker) Run() error {
-	// TODO: подумать над релевантностью
-	// Chat api test
-	//if err := w.services.Chat.TestConnection(); err != nil {
-	//	return fmt.Errorf("chat api connection error:%w", err)
-	//}
-
 	// Selenium parse page
 	if err := w.services.GoTo(w.d.BaseURL); err != nil {
 		return fmt.Errorf("page parse error:%w", err)
@@ -134,7 +130,8 @@ func (w *Worker) Run() error {
 		// TODO: реализовать ожидание подгрузки следующий страницы (ожидание момента авторизации) >>>
 		time.Sleep(time.Second * 5)
 
-		if err := w.services.Selenium.Wd().Get("https://russia.blsspainglobal.com/Global/Bls/VisaTypeVerification"); err != nil {
+		err = w.services.Selenium.GoTo(w.d.BaseURL + w.d.VisaTypeURL)
+		if err != nil {
 			return err
 		}
 
@@ -198,7 +195,7 @@ func (w *Worker) Run() error {
 	if err != nil {
 		return fmt.Errorf("send availability notification error:%w", err)
 	}
-	log.Println("Availability notification sent")
+	log.Println("Availability notification sent to ", w.d.NotifiedEmail)
 
 	// DEBUG:
 	time.Sleep(time.Second * 15)
@@ -215,15 +212,18 @@ func (w *Worker) LoadCookies() error {
 	}
 
 	var cookies []selenium.Cookie
-	if err := json.Unmarshal(cookiesJson, &cookies); err != nil {
+	err = json.Unmarshal(cookiesJson, &cookies)
+	if err != nil {
 		return fmt.Errorf("cannot unmarshal cookies:%w", err)
 	}
 
-	if err := w.services.Wd().DeleteAllCookies(); err != nil {
+	err = w.services.Selenium.DeleteAllCookies()
+	if err != nil {
 		return fmt.Errorf("cannot delete all cookies:%w", err)
 	}
 
-	if err := w.services.Selenium.SetCookies(cookies); err != nil {
+	err = w.services.Selenium.SetCookies(cookies)
+	if err != nil {
 		return fmt.Errorf("cannot set cookies:%w", err)
 	}
 
@@ -234,10 +234,9 @@ func (w *Worker) LoadCookies() error {
 func (w *Worker) SaveCookies() {
 	var cookies []selenium.Cookie
 
-	// TODO: refactor
-	cookie, err := w.services.Wd().GetCookie(".AspNetCore.Cookies")
+	cookie, err := w.services.Selenium.AuthCookie()
 	if err != nil {
-		log.Println("Cannot get cookies:%w", err)
+		log.Println("cannot get auth cookie: ", err)
 		return
 	}
 
@@ -249,7 +248,8 @@ func (w *Worker) SaveCookies() {
 		return
 	}
 
-	if err := util.WriteFile(w.cookieFilePath(), cookiesJson); err != nil {
+	err = util.WriteFile(w.cookieFilePath(), cookiesJson)
+	if err != nil {
 		log.Println("Cannot save cookies:%w", err)
 		return
 	}
@@ -257,10 +257,8 @@ func (w *Worker) SaveCookies() {
 	log.Println("Cookies saved")
 }
 
-func (w *Worker) cookieFilePath() string {
-	return w.d.TmpFolder + w.d.CookieFile
-}
-
+// savePageScreenshot сохраняет скриншот страницы.
+// Временная функция для отладки
 func (w *Worker) savePageScreenshot() error {
 	path := w.d.TmpFolder + w.d.ScreenshotFile
 	data, err := w.services.Selenium.PullPageScreenshot()
@@ -273,4 +271,16 @@ func (w *Worker) savePageScreenshot() error {
 	}
 
 	return nil
+}
+
+func (w *Worker) cookieFilePath() string {
+	return w.d.TmpFolder + w.d.CookieFile
+}
+
+func LoadProxies(filePath string) (*cfg.ProxiesManager, error) {
+	proxiesFile, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read proxies file: %v", err)
+	}
+	return cfg.ParseProxiesFile(proxiesFile)
 }

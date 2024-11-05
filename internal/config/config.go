@@ -25,24 +25,24 @@ type Config struct {
 	Password     string
 }
 
-func LoadConfig() (Config, error) {
+func LoadConfig() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
-		return Config{}, err
+		return nil, err
 	}
 
 	smtpPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	if err != nil {
-		return Config{}, fmt.Errorf("failed to parse smtp port: %w", err)
+		return nil, fmt.Errorf("failed to parse smtp port: %w", err)
 	}
 
 	proxyRowForeign := os.Getenv("PROXY_ROW_FOREIGN")
 	proxyForeign, err := ParseProxy(proxyRowForeign)
 	if err != nil {
-		return Config{}, fmt.Errorf("failed to parse foregin proxy row: %w", err)
+		return nil, fmt.Errorf("failed to parse foregin proxy row: %w", err)
 	}
 
-	return Config{
+	return &Config{
 		SeleniumUrl:       os.Getenv("SELENIUM_URL"),
 		BlsEmail:          os.Getenv("BLS_EMAIL"),
 		BlsPassword:       os.Getenv("BLS_PASSWORD"),
