@@ -22,6 +22,15 @@ func (e TooManyRequestsErr) Error() string {
 	return fmt.Sprintf("too many requests error: %s", e.Msg)
 }
 
+// WDConnectError ошибка подключения к Selenium WebDriver
+type WDConnectError struct {
+	Msg string
+}
+
+func (e WDConnectError) Error() string {
+	return fmt.Sprintf("webdriver connect error: %s", e.Msg)
+}
+
 type Deps struct {
 	BaseURL     string
 	VisaTypeURL string
@@ -54,7 +63,19 @@ func (w *Worker) MakePreparation() error {
 	return nil
 }
 
-func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, proxy cfg.Proxy) error {
+// ConnectSameProxy выполняет подключение к Selenium WebDriver с текущим прокси
+func (w *Worker) ConnectSameProxy(connector service.ProxyConnecter) error {
+	err := connector.ConnectWithProxy(w.chromeExtensionPath())
+	if err != nil {
+		return fmt.Errorf("selenium connect with proxy error:%w", err)
+	}
+
+	return nil
+}
+
+// ConnectGeneratedProxy выполняет подключение к Selenium WebDriver с новым прокси
+// Функция генерирует расширение для авторизации прокси
+func (w *Worker) ConnectGeneratedProxy(connector service.ProxyConnecter, proxy cfg.Proxy) error {
 	extensionPath, err := w.GenerateProxyAuthExtension(proxy)
 	if err != nil {
 		// TODO: Подумать над возвращением ошибки
@@ -63,7 +84,7 @@ func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, pro
 
 	err = connector.ConnectWithProxy(extensionPath)
 	if err != nil {
-		return fmt.Errorf("selenium connect with proxy error:%w", err)
+		return fmt.Errorf("selenium connect with new generated proxy error:%w", err)
 	}
 
 	return nil
@@ -73,8 +94,11 @@ func (w *Worker) ConnectWithGeneratedProxy(connector service.ProxyConnecter, pro
 // Функция выполняет основной алгоритм работы бота.
 // TODO: refactor
 func (w *Worker) Run() error {
-	// Selenium parse page
-	if err := w.services.GoTo(w.d.BaseURL); err != nil {
+	err := w.services.Selenium.GoTo(w.d.BaseURL)
+	if errors.Is(err, service.InvalidSessionError) {
+		return WDConnectError{Msg: err.Error()}
+	}
+	if err != nil {
 		return fmt.Errorf("page parse error:%w", err)
 	}
 	log.Println("Web page parsed")
@@ -153,7 +177,7 @@ func (w *Worker) Run() error {
 	time.Sleep(time.Second * 3)
 
 	log.Println("Retry process second captcha starts ...")
-	err := w.RetryProcessCaptcha(w.d.CaptchaMaxTries)
+	err = w.RetryProcessCaptcha(w.d.CaptchaMaxTries)
 	if errors.Is(err, service.InvalidSelectionError) {
 		return service.InvalidSelectionError
 	}

@@ -43,14 +43,23 @@ const availabilityCheckMsg = "No Appointments Available"
 
 const invalidSelectionMsg = "Invalid selection"
 
+// SeleniumLegacyCode тип для легаси кодов ошибок Selenium WebDriver
+type SeleniumLegacyCode int
+
+const (
+	invalidSessionId = 6
+)
+
 var InvalidSelectionError = errors.New("captcha invalid selection")
+
+var InvalidSessionError = errors.New("invalid session id")
 
 // Нужное количество нажатий на стрелку вниз для выбора каждого элемента формы по id. -1 означает, что элемент не нужно выбирать
 var inputKeyDownCounts = map[string]int{
 	"self":                  -1,
 	"ApplicantsNo":          -1,
 	"JurisdictionId":        1,
-	"loc":                   2,
+	"loc":                   4,
 	"VisaType":              1,
 	"VisaSubType":           9,
 	"AppointmentCategoryId": 1,
@@ -129,7 +138,23 @@ func (s *SeleniumService) TestPage() error {
 
 // GoTo переходит на страницу по url
 func (s *SeleniumService) GoTo(url string) error {
-	return s.wd.Get(url)
+	var seleniumErr *selenium.Error
+	err := s.wd.Get(url)
+	if errors.As(err, &seleniumErr) {
+		fmt.Println(seleniumErr.Err)
+		fmt.Println(seleniumErr.HTTPCode)
+		fmt.Println(seleniumErr.Message)
+		fmt.Println(seleniumErr.LegacyCode)
+		fmt.Println(seleniumErr.Stacktrace)
+		if seleniumErr.LegacyCode == invalidSessionId {
+			// DEBUG:
+			log.Println("Invalid session id ||||||||")
+			return InvalidSessionError
+		}
+		return err
+	}
+
+	return nil
 }
 
 // IsAuthorized проверяет авторизован ли пользователь, но только для одной конкретной страницы - проверка по URL - VisaTypeVerification

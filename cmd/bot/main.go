@@ -33,7 +33,7 @@ const (
 
 const (
 	connectionMaxTries     = 10
-	processCaptchaMaxTries = 3
+	processCaptchaMaxTries = 5
 )
 const defaultMainLoopIntervalM = 30
 
@@ -111,7 +111,7 @@ func main() {
 	}
 	log.Println("Image API client initialized")
 
-	err = workers.ConnectWithGeneratedProxy(services.Selenium, proxiesManager.Current())
+	err = workers.ConnectGeneratedProxy(services.Selenium, proxiesManager.Current())
 	if err != nil {
 		log.Fatalln("Web driver connection error:", err)
 	}

@@ -26,31 +26,45 @@ func RunMainLoop(ctx context.Context, deps MainLoopDeps, interval int) {
 			log.Println("Context canceled, stopping main loop...")
 			return
 		default:
-			// Выполнение основной логики воркера
 			runErr := deps.Workers.Run()
 
-			// Проверяем, произошла ли ошибка TooManyRequestsErr
-			if shouldRestart := handleRunError(runErr, deps); shouldRestart {
-				log.Println("Immediate restart of the main loop due to TooManyRequestsErr...")
-				continue // Немедленный перезапуск цикла
+			shouldRestart := handleRunError(runErr, deps)
+			if shouldRestart {
+				log.Println("Restarting main loop...")
+				continue
 			}
 
-			// Ждем указанный интервал перед следующей итерацией
+			log.Println("Waiting for", interval, "minutes...")
+
 			select {
 			case <-ctx.Done():
 				log.Println("Context canceled, stopping main loop...")
 				return
 			case <-time.After(time.Duration(interval) * time.Minute):
-				// Продолжаем к следующей итерации после ожидания
 			}
 		}
 	}
 }
 
+// TODO: возврат еще и ошибки (обработать случай, когда не удалось переподключиться к Selenium)
 // handleRunError обработка ошибок в основном цикле
+// Возвращает true, если нужно перезапустить цикл, при этом перезапускает веб-драйвер с новым прокси
+// Возможна ситуация, когда не удалось переподключиться к Selenium
 func handleRunError(err error, deps MainLoopDeps) bool {
 	if err == nil {
 		return false
+	}
+
+	var connectErr worker.WDConnectError
+	if errors.As(err, &connectErr) {
+		err = deps.Workers.ConnectSameProxy(deps.Services.Selenium)
+		if err != nil {
+			log.Println("Web driver reconnect error:", err)
+			return false
+		}
+
+		log.Println("Web driver reconnected with the same proxy:", deps.ProxiesManager.Current().Host)
+		return true
 	}
 
 	var banErr worker.TooManyRequestsErr
@@ -63,13 +77,14 @@ func handleRunError(err error, deps MainLoopDeps) bool {
 			log.Println("Web driver quit error:", err)
 		}
 
-		err = deps.Workers.ConnectWithGeneratedProxy(deps.Services.Selenium, deps.ProxiesManager.Next())
+		newProxie := deps.ProxiesManager.Next()
+		err = deps.Workers.ConnectGeneratedProxy(deps.Services.Selenium, newProxie)
 		if err != nil {
 			log.Println("Web driver reconnect error:", err)
 			return false
 		}
 
-		log.Println("Web driver reconnected with new proxy:", deps.ProxiesManager.Current().Host)
+		log.Println("Web driver reconnected with new proxy:", newProxie.Host)
 		return true
 	}
 
