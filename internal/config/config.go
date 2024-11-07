@@ -8,10 +8,12 @@ import (
 )
 
 type Config struct {
-	SeleniumUrl string
+	NotifiedEmail     string
+	MainLoopIntervalM int
 
 	BlsEmail    string
 	BlsPassword string
+	SeleniumUrl string
 
 	ChatApiKey   string
 	ProxyForeign Proxy
@@ -25,10 +27,17 @@ type Config struct {
 	Password     string
 }
 
+const defaultMainLoopIntervalM = 30
+
 func LoadConfig() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
 		return nil, err
+	}
+
+	mainLoopIntervalM, err := strconv.Atoi(os.Getenv("MAIN_LOOP_INTERVAL_M"))
+	if err != nil || mainLoopIntervalM <= 0 {
+		mainLoopIntervalM = defaultMainLoopIntervalM
 	}
 
 	smtpPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
@@ -43,6 +52,8 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
+		NotifiedEmail:     os.Getenv("NOTIFIED_EMAIL"),
+		MainLoopIntervalM: mainLoopIntervalM,
 		SeleniumUrl:       os.Getenv("SELENIUM_URL"),
 		BlsEmail:          os.Getenv("BLS_EMAIL"),
 		BlsPassword:       os.Getenv("BLS_PASSWORD"),

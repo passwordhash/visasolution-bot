@@ -2,17 +2,16 @@ version: '3.8'
 
 services:
     selenium:
-        container_name: selenium-chrome
-        shm_size: 2g
         image: selenium/standalone-chrome
+        container_name: selenium
+        shm_size: 2g
         ports:
             - "4444:4444"
 
     app:
-        container_name: bot
-        image: visasolution-bot-app:latest
+        image: visasolution-bot:latest
+        container_name: visasolution-bot
         build: .
-        command: ["/app/main", "-email", "${EMAIL}", "-interval", "${INTERVAL}"]
         restart: always
         ports:
             - "2525:2525"

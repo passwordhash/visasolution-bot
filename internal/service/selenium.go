@@ -47,7 +47,7 @@ const invalidSelectionMsg = "Invalid selection"
 type SeleniumLegacyCode int
 
 const (
-	invalidSessionId = 6
+	invalidSessionId = iota
 )
 
 var InvalidSelectionError = errors.New("captcha invalid selection")
@@ -141,12 +141,8 @@ func (s *SeleniumService) GoTo(url string) error {
 	var seleniumErr *selenium.Error
 	err := s.wd.Get(url)
 	if errors.As(err, &seleniumErr) {
-		fmt.Println(seleniumErr.Err)
-		fmt.Println(seleniumErr.HTTPCode)
-		fmt.Println(seleniumErr.Message)
-		fmt.Println(seleniumErr.LegacyCode)
-		fmt.Println(seleniumErr.Stacktrace)
-		if seleniumErr.LegacyCode == invalidSessionId {
+		fmt.Println("LegacyCode: ", seleniumErr.LegacyCode)
+		if seleniumErr.LegacyCode == invalidSessionId || seleniumErr.Err == InvalidSessionError.Error() {
 			// DEBUG:
 			log.Println("Invalid session id ||||||||")
 			return InvalidSessionError

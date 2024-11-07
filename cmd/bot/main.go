@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -35,16 +34,8 @@ const (
 	connectionMaxTries     = 10
 	processCaptchaMaxTries = 5
 )
-const defaultMainLoopIntervalM = 30
-
-var (
-	mainLoopIntervalM        int
-	availbilityNotifiedEmail string
-)
 
 func main() {
-	parseFlags()
-
 	logFile, err := setupLogger()
 	if err != nil {
 		log.Fatalln("Failed to setup logger:", err)
@@ -88,7 +79,7 @@ func main() {
 		VisaTypeURL:     visaTypeVerificationURL,
 		TmpFolder:       tmpFolder,
 		CookieFile:      cookieFilename,
-		NotifiedEmail:   availbilityNotifiedEmail,
+		NotifiedEmail:   config.NotifiedEmail,
 		CaptchaMaxTries: processCaptchaMaxTries,
 		ScreenshotFile:  screenshotFilename,
 	})
@@ -124,7 +115,7 @@ func main() {
 		Services:       services,
 		Config:         config,
 		ProxiesManager: proxiesManager,
-	}, mainLoopIntervalM)
+	}, config.MainLoopIntervalM)
 
 	<-ctx.Done()
 	log.Println("App stopped gracefully")
@@ -157,21 +148,4 @@ func setupLogger() (*os.File, error) {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	return logFile, nil
-}
-
-// parseFlags парсит флаги командной строки
-// -email - email для уведомлений о доступности. Обязательный
-// -interval - интервал основного цикла в минутах
-func parseFlags() {
-	flag.IntVar(&mainLoopIntervalM, "interval", defaultMainLoopIntervalM, "Main loop interval in minutes")
-	flag.StringVar(&availbilityNotifiedEmail, "email", "", "Email for availability notifications. Required")
-	flag.Usage = func() {
-		fmt.Println("Usage: bot [options]")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-
-	if availbilityNotifiedEmail == "" {
-		log.Fatal("Email for availability notifications is required")
-	}
 }

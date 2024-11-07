@@ -50,6 +50,10 @@ func RunMainLoop(ctx context.Context, deps MainLoopDeps, interval int) {
 // handleRunError обработка ошибок в основном цикле
 // Возвращает true, если нужно перезапустить цикл, при этом перезапускает веб-драйвер с новым прокси
 // Возможна ситуация, когда не удалось переподключиться к Selenium
+//
+// Обрабатываются следующие ошибки:
+// - WDConnectError: подключение к Selenium WebDriver
+// - TooManyRequestsErr: переподключение с новым прокси
 func handleRunError(err error, deps MainLoopDeps) bool {
 	if err == nil {
 		return false
