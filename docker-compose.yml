@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+    selenium:
+        image: selenium/standalone-chrome
+        container_name: selenium
+        shm_size: 2g
+        ports:
+            - "4444:4444"
+
+    app:
+        image: visasolution-bot:latest
+        container_name: visasolution-bot
+        build: .
+        restart: always
+        ports:
+            - "2525:2525"
+        environment:
+            - SELENIUM_URL=http://selenium:4444/wd/hub
+        volumes:
+            - visasolution-volume:/app/logs
+        depends_on:
+            - selenium
+
+volumes:
+    visasolution-volume:
+        driver: local

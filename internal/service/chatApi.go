@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/sashabaranov/go-openai"
 	"net/http"
-	"net/url"
-	"strings"
+	cfg "visasolution/internal/config"
+	pkgService "visasolution/pkg/service"
 )
 
 const testMsgReq = "Hello, World!"
@@ -20,14 +20,10 @@ func NewChatService(token string) *ChatService {
 	return &ChatService{token: token}
 }
 
-func (s *ChatService) ClientInitWithProxy(proxy string) error {
-	proxyUrl, err := parseProxy(proxy)
+func (s *ChatService) ClientInitWithProxy(proxy cfg.Proxy) error {
+	transport, err := pkgService.ProxyTransport(proxy.URL())
 	if err != nil {
-		return err
-	}
-
-	transport := &http.Transport{
-		Proxy: http.ProxyURL(proxyUrl),
+		return fmt.Errorf("failed to create proxy transport: %w", err)
 	}
 
 	client := &http.Client{
@@ -90,24 +86,4 @@ func (s *ChatService) Request4VPreviewWithImage(content, imageUrl string) (opena
 
 func (s *ChatService) GetRespMsg(resp openai.ChatCompletionResponse) string {
 	return resp.Choices[0].Message.Content
-}
-
-func parseProxy(proxyString string) (*url.URL, error) {
-	// Разделяем строку на части
-	parts := strings.Split(proxyString, "@")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid proxy format")
-	}
-
-	// Прокси и учетные данные
-	proxyAddress := parts[0]
-	credentials := parts[1]
-
-	// Создаем URL-адрес прокси
-	proxyURL, err := url.Parse(fmt.Sprintf("http://%s@%s", credentials, proxyAddress))
-	if err != nil {
-		return nil, err
-	}
-
-	return proxyURL, nil
 }
