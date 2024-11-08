@@ -18,10 +18,10 @@ services:
         environment:
             - SELENIUM_URL=http://selenium:4444/wd/hub
         volumes:
-            - visasolution-logs:/app/logs
+            - visasolution-volume:/app/logs
         depends_on:
             - selenium
 
 volumes:
-    visasolution-logs:
+    visasolution-volume:
         driver: local
