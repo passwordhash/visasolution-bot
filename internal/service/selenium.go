@@ -13,13 +13,12 @@ import (
 
 const authCookieKey = ".AspNetCore.Cookies"
 
+// Константы для нахождения элементов на странице
 const (
 	captchaIFrameXPath         = `//*[@id="popup_1"]/iframe`
 	captchaDragableCSSSelector = `body > div.k-widget.k-window`
-	captchaCardsContainerXPath = `//*[@id="captcha-main-div"]/div/div[2]`
 	captchaCardImgXPath        = `//*[@id="captcha-main-div"]/div/div[2]/div/img`
 	submitCaptchaXPath         = `//*[@id="captchaForm"]/div[2]/div[3]`
-	submitCaptchaIdCSSSelector = `#btnSubmit`
 
 	verifyBtnIdCSSSelector = `#btnVerify`
 
@@ -36,12 +35,10 @@ const (
 	bookNewBtnXPath = `//*[@id="tns1-item1"]/div/div/div/div/a`
 )
 
-// Количество табов до первого input'а в форме Book New Appointment
-const tabsCountToFirstInput = 14
-
-const availabilityCheckMsg = "No Appointments Available"
-
-const invalidSelectionMsg = "Invalid selection"
+const (
+	availabilityCheckMsg = "No Appointments Available"
+	invalidSelectionMsg  = "Invalid selection"
+)
 
 // SeleniumLegacyCode тип для легаси кодов ошибок Selenium WebDriver
 type SeleniumLegacyCode int
@@ -53,6 +50,9 @@ const (
 var InvalidSelectionError = errors.New("captcha invalid selection")
 
 var InvalidSessionError = errors.New("invalid session id")
+
+// Количество табов до первого input'а в форме Book New Appointment
+const tabsCountToFirstInput = 14
 
 // Нужное количество нажатий на стрелку вниз для выбора каждого элемента формы по id. -1 означает, что элемент не нужно выбирать
 var inputKeyDownCounts = map[string]int{
@@ -88,7 +88,6 @@ func NewSeleniumService(maxTries int, blsEmail string, seleniumURL string, blsPa
 // chromeExtensionPath - путь к расширению для авторизации через прокси
 func (s *SeleniumService) ConnectWithProxy(chromeExtensionPath string) error {
 	var wd selenium.WebDriver
-	var err error
 
 	caps := selenium.Capabilities{
 		"browserName": "chrome",
@@ -97,7 +96,8 @@ func (s *SeleniumService) ConnectWithProxy(chromeExtensionPath string) error {
 	chrCaps := chrome.Capabilities{
 		W3C: true,
 	}
-	if err := chrCaps.AddExtension(chromeExtensionPath); err != nil {
+	err := chrCaps.AddExtension(chromeExtensionPath)
+	if err != nil {
 		return err
 	}
 	caps.AddChrome(chrCaps)
@@ -106,16 +106,13 @@ func (s *SeleniumService) ConnectWithProxy(chromeExtensionPath string) error {
 	if urlPrefix == "" {
 		urlPrefix = selenium.DefaultURLPrefix
 	}
-	i := 0
-	for i < s.maxTries {
+	for i := 0; i < s.maxTries; i++ {
 		wd, err = selenium.NewRemote(caps, urlPrefix)
-		if err != nil {
-			log.Println(err)
-			i++
-			time.Sleep(time.Second * 3)
-			continue
+		if err == nil {
+			break
 		}
-		break
+		log.Println(err)
+		time.Sleep(3 * time.Second)
 	}
 
 	s.wd = wd
@@ -124,27 +121,24 @@ func (s *SeleniumService) ConnectWithProxy(chromeExtensionPath string) error {
 }
 
 func (s *SeleniumService) TestPage() error {
-	var err error
-
-	// header
-	_, err = s.wd.FindElement(selenium.ByXPATH, `/html/body/header/nav[1]`)
-	// body
-	_, err = s.wd.FindElement(selenium.ByXPATH, `//*[@id="div-main"]`)
-	// footer
-	_, err = s.wd.FindElement(selenium.ByXPATH, `/html/body/footer/div/div[1]/div[1]/h4`)
-
-	return err
+	if _, err := s.wd.FindElement(selenium.ByXPATH, `/html/body/header/`); err != nil {
+		return err
+	}
+	if _, err := s.wd.FindElement(selenium.ByXPATH, `//*[@id="div-main"]`); err != nil {
+		return err
+	}
+	if _, err := s.wd.FindElement(selenium.ByXPATH, `/html/body/footer/`); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GoTo переходит на страницу по url
 func (s *SeleniumService) GoTo(url string) error {
-	var seleniumErr *selenium.Error
 	err := s.wd.Get(url)
+	var seleniumErr *selenium.Error
 	if errors.As(err, &seleniumErr) {
-		fmt.Println("LegacyCode: ", seleniumErr.LegacyCode)
 		if seleniumErr.LegacyCode == invalidSessionId || seleniumErr.Err == InvalidSessionError.Error() {
-			// DEBUG:
-			log.Println("Invalid session id ||||||||")
 			return InvalidSessionError
 		}
 		return err
@@ -154,6 +148,7 @@ func (s *SeleniumService) GoTo(url string) error {
 }
 
 // IsAuthorized проверяет авторизован ли пользователь, но только для одной конкретной страницы - проверка по URL - VisaTypeVerification
+// TODO: сделать общий метод для проверки авторизации
 func (s *SeleniumService) IsAuthorized(neededURL string) (bool, error) {
 	curURL, err := s.wd.CurrentURL()
 	if err != nil {
@@ -163,6 +158,7 @@ func (s *SeleniumService) IsAuthorized(neededURL string) (bool, error) {
 	return curURL == neededURL, nil
 }
 
+// AuthCookie возвращает куки авторизации
 func (s *SeleniumService) AuthCookie() (selenium.Cookie, error) {
 	return s.wd.GetCookie(authCookieKey)
 }
@@ -200,13 +196,13 @@ func (s *SeleniumService) Quit() error {
 	return s.wd.Quit()
 }
 
-// PullPageScreenshot делает скриншот текущей страницы
+// PullPageScreenshot возвращает скриншот страницы в виде среза байт
 func (s *SeleniumService) PullPageScreenshot() ([]byte, error) {
 	return s.wd.Screenshot()
 }
 
+// PullCaptchaImage возвращает изображение капчи в виде среза байт
 func (s *SeleniumService) PullCaptchaImage() ([]byte, error) {
-	// TODO: REFACTOR перенести часть в worker
 	// переключаемся на iframe капчи, находим контейнер, возращаемся обратно,
 	// чтобы на скрине было видно содержимое капчи
 	var err error
@@ -231,17 +227,17 @@ func (s *SeleniumService) PullCaptchaImage() ([]byte, error) {
 		return []byte{}, err
 	}
 
-	//return util.WriteFile(util.GetAbsolutePath("tmp/captcha.png"), img)
 	return img, nil
 }
 
+// SolveCaptcha проходит уже решенную капчу. На вход принимает срез номеров карточек с 1 по 9
+// TODO: сделать возращение bool, свидетельствующее о том, что капча решена/не решена
 func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 	dragable, err := s.wd.FindElement(selenium.ByCSSSelector, captchaDragableCSSSelector)
 	if err != nil {
 		return fmt.Errorf("find element 'dragable' error:%w", err)
 	}
 
-	// Перемещаем капчу в левый верхний угол
 	err = s.changeElementProperties(dragable, map[string]string{
 		"left": "0",
 		"top":  "0",
@@ -250,14 +246,12 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 		return fmt.Errorf("change element property error:%w", err)
 	}
 
-	// Переключаемся на фрейм капчи
 	_, err = s.waitAndSwitchIFrame(selenium.ByXPATH, captchaIFrameXPath)
 	if err != nil {
 		return fmt.Errorf("switch iframe error:%w", err)
 	}
 	defer s.switchToDefault()
 
-	// Получаем размеры карточек
 	cardImg, err := s.wd.FindElement(selenium.ByXPATH, captchaCardImgXPath)
 	if err != nil {
 		return err
@@ -274,8 +268,7 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 
 	// Проходимся по номерам карточек и кликаем вычисленным координатам для каждого номера
 	for _, n := range numbers {
-		// TEMP:
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 200)
 		x, y := getCardCoordinates(n, cardW, cardH)
 		err = s.clickByCoords(x+horPadding, y+vertPadding)
 		if err != nil {
@@ -292,12 +285,10 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 
 	time.Sleep(time.Second * 2)
 
-	// Обратываем случай неверного решения капчи
 	text, err := s.wd.AlertText()
 	defer s.wd.AcceptAlert()
-
 	// TODO: сделать другую проверка на неправилное решение капчи
-	if strings.Contains(text, invalidSelectionMsg) || err == nil {
+	if err == nil || strings.Contains(text, invalidSelectionMsg) {
 		return InvalidSelectionError
 	}
 
@@ -327,10 +318,6 @@ func (s *SeleniumService) Authorize() error {
 	if err != nil {
 		return err
 	}
-
-	// OLD:
-	//time.Sleep(time.Millisecond * 500)
-	//return submit.Click()
 
 	err = s.waitAndClickButton(selenium.ByID, formSubmitId)
 	if err != nil {
@@ -450,6 +437,8 @@ func (s *SeleniumService) clickButton(byWhat, value string) error {
 	return elem.Click()
 }
 
+// TODO: refactor all wait funcs
+
 // waitAndFind ожидает появления элемента и возвращает его
 func (s *SeleniumService) waitAndFind(byWhat, value string) (selenium.WebElement, error) {
 	var element selenium.WebElement
@@ -468,12 +457,10 @@ func (s *SeleniumService) waitAndFind(byWhat, value string) (selenium.WebElement
 	return nil, fmt.Errorf("element not found after multiple attempts: %w", err)
 }
 
-// TODO: refactor all wait funcs
-
 // waitAndClickButton ожидает появления элемента и кликает по нему
 func (s *SeleniumService) waitAndClickButton(byWhat, value string) error {
 	var err error
-	maxTries := 10                  // HARD CODED
+	maxTries := s.maxTries          // HARD CODED
 	delay := time.Millisecond * 500 // HARD CODED
 	for i := 0; i < maxTries; i++ {
 		err = s.clickButton(byWhat, value)
@@ -485,7 +472,7 @@ func (s *SeleniumService) waitAndClickButton(byWhat, value string) error {
 	return fmt.Errorf("max tries exceeded:%w", err)
 }
 
-// waitAndSwitchIFrame ожидает появления элемента и переключается на него
+// waitAndSwitchIFrame ожидает появления IFrame'а и переключается на него
 func (s *SeleniumService) waitAndSwitchIFrame(byWhat, value string) (selenium.WebElement, error) {
 	var iframe selenium.WebElement
 	var err error
@@ -507,7 +494,7 @@ func (s *SeleniumService) waitAndSwitchIFrame(byWhat, value string) (selenium.We
 	return nil, fmt.Errorf("element not found after multiple attempts: %w", err)
 }
 
-// switchToDefault переключается на дефолтный фрейм
+// switchToDefault переключается на дефолтный фрейм (основной html документ)
 func (s *SeleniumService) switchToDefault() error {
 	return s.wd.SwitchFrame(nil)
 }
@@ -563,7 +550,7 @@ func (s *SeleniumService) clickByCoords(x, y int) error {
 	return err
 }
 
-// keyDownFor нажимает клавишу times раз
+// keyDownFor нажимает key клавишу times раз
 func (s *SeleniumService) keyDownFor(times int, key string) error {
 	for i := 0; i < times; i++ {
 		if err := s.wd.KeyDown(key); err != nil {
@@ -573,7 +560,8 @@ func (s *SeleniumService) keyDownFor(times int, key string) error {
 	return nil
 }
 
-// getDisplayedFormControls возвращает только отображаемые элементы формы. Только для страницы Book New Appointment
+// getDisplayedFormControls возвращает только отображаемые элементы формы.
+// Только для страницы Book New Appointment (форма для проверки доступности записи)
 func (s *SeleniumService) getDisplayedFormControls() ([]selenium.WebElement, error) {
 	formControls, err := s.wd.FindElements(selenium.ByXPATH, bookNewFormControlsXPath)
 	if err != nil {
