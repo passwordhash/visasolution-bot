@@ -1,5 +1,6 @@
-tmp/*
 .idea/
+.DS_Store
+tmp/*
 .env
 .DS_Store
 go.mod
