@@ -121,7 +121,7 @@ func (s *SeleniumService) ConnectWithProxy(chromeExtensionPath string) error {
 }
 
 func (s *SeleniumService) TestPage() error {
-	if _, err := s.wd.FindElement(selenium.ByXPATH, ``); err != nil {
+	if _, err := s.wd.FindElement(selenium.ByXPATH, `/html/body/header`); err != nil {
 		return err
 	}
 	if _, err := s.wd.FindElement(selenium.ByXPATH, `//*[@id="div-main"]`); err != nil {
