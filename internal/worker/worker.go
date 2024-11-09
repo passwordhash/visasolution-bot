@@ -103,25 +103,18 @@ func (w *Worker) Run() error {
 	}
 	log.Println("Web page parsed")
 
-	// Page test
-	if err := w.services.Selenium.TestPage(); err != nil {
-		return TooManyRequestsErr{Msg: "test page error"}
-	}
-	log.Println("Page successfully loaded")
-
-	// Maximize window
-	if err := w.services.Selenium.MaximizeWindow(); err != nil {
+	err = w.services.Selenium.MaximizeWindow()
+	if err != nil {
 		return fmt.Errorf("cannot maximize window:%w", err)
 	}
 
-	// Load cookies
-	if err := w.LoadCookies(); err != nil {
+	err = w.LoadCookies()
+	if err != nil {
 		log.Println("Cookies load error:", err)
 	}
 
-	// Go to visa type verification page
-	if err := w.services.Selenium.GoTo(w.d.BaseURL + w.d.VisaTypeURL); err != nil {
-		//return fmt.Errorf("go to visa type verification page error:%w", err)
+	err = w.services.Selenium.GoTo(w.d.BaseURL + w.d.VisaTypeURL)
+	if err != nil {
 		return TooManyRequestsErr{Msg: "go to visa type verification page error"}
 	}
 
