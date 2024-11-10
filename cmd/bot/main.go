@@ -84,7 +84,6 @@ func main() {
 		ScreenshotFile:  screenshotFilename,
 	})
 
-	// TODO: refactor
 	err = workers.MakePreparation()
 	if err != nil {
 		log.Fatalln("Make preparation error:", err)
