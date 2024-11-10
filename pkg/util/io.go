@@ -59,7 +59,8 @@ func CreateZip(filenames []string, contents [][]byte, zipPath string) error {
 	}
 
 	for i, filename := range filenames {
-		if err := AddFileToZip(zipWriter, filename, contents[i]); err != nil {
+		err = AddFileToZip(zipWriter, filename, contents[i])
+		if err != nil {
 			return err
 		}
 	}

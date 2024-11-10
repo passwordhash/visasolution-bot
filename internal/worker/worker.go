@@ -7,7 +7,6 @@ import (
 	"github.com/tebeka/selenium"
 	"log"
 	"os"
-	"time"
 	cfg "visasolution/internal/config"
 	"visasolution/internal/service"
 	"visasolution/pkg/util"
@@ -57,9 +56,11 @@ func NewWorker(services *service.Service, emailDeps Deps) *Worker {
 
 // MakePreparation выполняет подготовительную работу
 func (w *Worker) MakePreparation() error {
-	if err := util.CreateFolder(w.d.TmpFolder); err != nil {
-		return fmt.Errorf("cannot create folder:%w", err)
+	err := util.CreateFolder(w.d.TmpFolder)
+	if err != nil {
+		return fmt.Errorf("cannot create tmp folder:%w", err)
 	}
+
 	return nil
 }
 
@@ -92,7 +93,6 @@ func (w *Worker) ConnectGeneratedProxy(connector service.ProxyConnecter, proxy c
 
 // Run должен быть вызван только после инициализации всех сервисов.
 // Функция выполняет основной алгоритм работы бота.
-// TODO: refactor
 func (w *Worker) Run() error {
 	err := w.services.Selenium.GoTo(w.d.BaseURL)
 	if errors.Is(err, service.InvalidSessionError) {
@@ -120,90 +120,44 @@ func (w *Worker) Run() error {
 
 	isAuthorized, _ := w.services.Selenium.IsAuthorized(w.d.BaseURL + w.d.VisaTypeURL)
 	if !isAuthorized {
-		// Solving first captcha
-		if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
-			return fmt.Errorf("click verify first catpcha error:%w", err)
-		}
-
-		log.Println("Retry process first captcha starts ...")
-		err := w.RetryProcessCaptcha(w.d.CaptchaMaxTries)
-		if errors.Is(err, service.InvalidSelectionError) {
-			return service.InvalidSelectionError
-		}
+		err := w.handleAuthorization()
 		if err != nil {
-			return fmt.Errorf("retry process first captcha error:%w", err)
-		}
-		log.Println("Retry process first captcha successfully ended")
-
-		// TODO: сделать ожидание прогрузки
-		time.Sleep(time.Second * 3)
-
-		// Authorization
-		if err := w.services.Selenium.Authorize(); err != nil {
 			return fmt.Errorf("authorization error:%w", err)
 		}
-		log.Println("Authorization successfully")
-
-		// TODO: реализовать ожидание подгрузки следующий страницы (ожидание момента авторизации) >>>
-		time.Sleep(time.Second * 5)
-
-		err = w.services.Selenium.GoTo(w.d.BaseURL + w.d.VisaTypeURL)
-		if err != nil {
-			return err
-		}
-
-		time.Sleep(time.Second * 5)
-		// TODO: <<<
-
-		w.SaveCookies()
 	} else {
 		log.Println("Already authorized. Skip authorization")
 	}
 
 	// Solving second captcha
-	if err := w.services.Selenium.ClickVerifyBtn(); err != nil {
-		return fmt.Errorf("click verify second captcha error:%w", err)
-	}
-	log.Println("Second captcha successfully clicked")
-
-	// DEBUG:
-	time.Sleep(time.Second * 3)
-
-	log.Println("Retry process second captcha starts ...")
-	err = w.RetryProcessCaptcha(w.d.CaptchaMaxTries)
-	if errors.Is(err, service.InvalidSelectionError) {
-		return service.InvalidSelectionError
-	}
+	err = w.handleCaptcha()
 	if err != nil {
-		return fmt.Errorf("retry process first captcha error:%w", err)
+		return fmt.Errorf("second captcha error:%w", err)
 	}
-	log.Println("Retry process second captcha successfully ended")
 
 	// Book new appointment
-	if err := w.services.Selenium.BookNewAppointment(); err != nil {
+	err = w.services.Selenium.BookNewAppointment()
+	if err != nil {
 		return fmt.Errorf("book new appointment error:%w", err)
 	}
 	log.Println("Book new appointment submit successfully")
 
 	// DEBUG:
-	time.Sleep(time.Second * 4)
+	//time.Sleep(time.Second * 4)
 
-	// Check availability
 	isAppointmentAvailable, err := w.services.Selenium.CheckAvailability()
 	if err != nil {
 		return fmt.Errorf("check availability error:%w", err)
 	}
-	log.Println("Check availability successfully")
 
 	if isAppointmentAvailable {
 		log.Println("!!!Appointment available!!!")
-
 	} else {
 		log.Println("!!!Appointment NOT available!!!")
 	}
 
 	// TEMP: Save page screenshot
-	if err := w.savePageScreenshot(); err != nil {
+	err = w.savePageScreenshot()
+	if err != nil {
 		log.Println("Cannot save page screenshot:%w", err)
 	}
 
@@ -214,10 +168,54 @@ func (w *Worker) Run() error {
 	}
 	log.Println("Availability notification sent to ", w.d.NotifiedEmail)
 
-	// DEBUG:
-	time.Sleep(time.Second * 15)
-
 	log.Println("Work done")
+
+	return nil
+}
+
+// handleAuthorization обрабатывает авторизацию на сайте.
+// Функция вызывается в случае, если необходимо авторизоваться.
+func (w *Worker) handleAuthorization() error {
+	err := w.handleCaptcha()
+	if err != nil {
+		return fmt.Errorf("authorization captcha error:%w", err)
+	}
+
+	log.Println("Retry process first captcha successfully ended")
+
+	err = w.services.Selenium.Authorize()
+	if err != nil {
+		return fmt.Errorf("authorization error:%w", err)
+	}
+
+	log.Println("Authorization successfully ended")
+
+	err = w.services.Selenium.GoTo(w.d.BaseURL + w.d.VisaTypeURL)
+	if err != nil {
+		return err
+	}
+
+	w.SaveCookies()
+
+	return nil
+}
+
+// handleCaptcha выполняет обработку имеющейся на странице капчи
+func (w *Worker) handleCaptcha() error {
+	err := w.services.Selenium.ClickVerifyBtn()
+	if err != nil {
+		return fmt.Errorf("click verify captcha error:%w", err)
+	}
+
+	log.Println("Retry process captcha starts ...")
+
+	err = w.RetryProcessCaptcha(w.d.CaptchaMaxTries)
+	if errors.Is(err, service.InvalidSelectionError) {
+		return service.InvalidSelectionError
+	}
+	if err != nil {
+		return fmt.Errorf("retry process captcha error:%w", err)
+	}
 
 	return nil
 }
@@ -283,7 +281,8 @@ func (w *Worker) savePageScreenshot() error {
 		return fmt.Errorf("cannot pull page screenshot:%w", err)
 	}
 
-	if err := util.WriteFile(path, data); err != nil {
+	err = util.WriteFile(path, data)
+	if err != nil {
 		return fmt.Errorf("cannot write screenshot:%w", err)
 	}
 
@@ -294,10 +293,12 @@ func (w *Worker) cookieFilePath() string {
 	return w.d.TmpFolder + w.d.CookieFile
 }
 
+// LoadProxies загружает прокси из файла
 func LoadProxies(filePath string) (*cfg.ProxiesManager, error) {
 	proxiesFile, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read proxies file: %v", err)
 	}
+
 	return cfg.ParseProxiesFile(proxiesFile)
 }

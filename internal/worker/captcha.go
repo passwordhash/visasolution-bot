@@ -10,8 +10,8 @@ import (
 
 const (
 	// msg сообщение, которое отправляется chat api
-	msg        = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right starting with 1.Take your time when choosing cards. The wrong decision is costly ”`
-	captchaImg = "captcha.png"
+	msg                = `you see an image with the task: ‘Select all squares with the number …’ Recognize the text in each square and send ONLY the cell numbers that contain this number, separated by commas without spaces. Numbering is left to right starting with 1.Take your time when choosing cards. The wrong decision is costly ”`
+	captchaImgFilename = "captcha.png"
 )
 
 // RetryProcessCaptcha пытается решить капчу заданное количество раз
@@ -26,8 +26,6 @@ func (w *Worker) RetryProcessCaptcha(maxTries int) error {
 			log.Println("invalid selection error, try again")
 			continue
 		}
-		// Если ошибка возникла не из-за неверного выбора, то скорее всего сервер забанил (Too many requests)
-		//return TooManyRequestsErr
 		return err
 	}
 	return fmt.Errorf("couldnt solve captcha after %d tries", maxTries)
@@ -50,6 +48,7 @@ func (w *Worker) processCaptcha() error {
 	if err != nil {
 		return fmt.Errorf("request to chat api with image url error:%w", err)
 	}
+
 	cardNums, err := util.StrToIntSlice(w.services.Chat.GetRespMsg(resp), ",")
 	log.Println("cards to select: ", cardNums)
 
@@ -71,5 +70,5 @@ func (w *Worker) saveCaptchaImage(relativePath string) error {
 }
 
 func (w *Worker) captchaImgPath() string {
-	return w.d.TmpFolder + captchaImg
+	return w.d.TmpFolder + captchaImgFilename
 }

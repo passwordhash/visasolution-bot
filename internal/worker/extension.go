@@ -10,7 +10,7 @@ import (
 const chromeExtensionFilename = "proxy_auth_plugin.zip"
 
 // manifest шаблон для файла манифеста расширения
-var manifest = `
+const manifest = `
 {
     "version": "1.0.0",
     "manifest_version": 2,
@@ -32,7 +32,7 @@ var manifest = `
 `
 
 // backgroundJS шаблон для скрипта расширения
-var backgroundJS = `
+const backgroundJS = `
 var config = {
         mode: "fixed_servers",
         rules: {
