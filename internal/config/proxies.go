@@ -8,32 +8,42 @@ import (
 )
 
 type ProxiesManager struct {
-	proxies   []Proxy
+	proxiesRU []Proxy
 	currIndex int
+
+	// ProxyForeign - прокси для иностранных сайтов.
+	// Может быть nil, если не указан в конфиге.
+	ProxyForeign Proxy
 }
 
 type proxiesConfig struct {
 	RussianProxies []string `json:"russian_proxies"`
+	ForeignProxy   string   `json:"foreign_proxy"`
 }
 
-func (p *ProxiesManager) Proxies() []Proxy {
-	return p.proxies
+func (p *ProxiesManager) ProxiesRU() []Proxy {
+	return p.proxiesRU
 }
 
-func (p *ProxiesManager) Next() Proxy {
-	p.currIndex = (p.currIndex + 1) % len(p.proxies)
-	return p.proxies[p.currIndex]
+func (p *ProxiesManager) NextRU() Proxy {
+	p.currIndex = (p.currIndex + 1) % len(p.proxiesRU)
+	return p.proxiesRU[p.currIndex]
 }
 
-func (p *ProxiesManager) Current() Proxy {
-	return p.proxies[p.currIndex]
+func (p *ProxiesManager) CurrentRU() Proxy {
+	return p.proxiesRU[p.currIndex]
 }
 
+// Proxy - структура для хранения авторизационных данных прокси
 type Proxy struct {
 	Host     string
 	Port     string
 	Username string
 	Password string
+}
+
+func (p *Proxy) IsEmpty() bool {
+	return p.Host == "" || p.Port == "" || p.Username == "" || p.Password == ""
 }
 
 // URL возвращает строку вида "http://username:password@host:port"
@@ -48,15 +58,16 @@ func (p *Proxy) URL() string {
 //	{
 //	  "russian_proxies": [
 //	    "ip:host@usrname:pswrd"
-//	  ]
+//	  ],
+//	  "foreign_proxy": "ip:host@usrname:pswrd"
 //	}
 func ParseProxiesFile(proxiesFile []byte) (*ProxiesManager, error) {
-	var proxies []Proxy
 	var proxisConfig proxiesConfig
+	var proxiesRU []Proxy
 
 	err := json.Unmarshal(proxiesFile, &proxisConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse proxies file: %w", err)
+		return nil, fmt.Errorf("failed to parse proxiesRU file: %w", err)
 	}
 
 	for _, proxyRow := range proxisConfig.RussianProxies {
@@ -65,10 +76,12 @@ func ParseProxiesFile(proxiesFile []byte) (*ProxiesManager, error) {
 			log.Printf("failed to parse proxy: %v", err)
 			continue
 		}
-		proxies = append(proxies, proxy)
+		proxiesRU = append(proxiesRU, proxy)
 	}
 
-	return &ProxiesManager{proxies: proxies}, nil
+	proxyForeign, _ := ParseProxy(proxisConfig.ForeignProxy)
+
+	return &ProxiesManager{proxiesRU: proxiesRU, ProxyForeign: proxyForeign}, nil
 }
 
 // ParseProxy приминает прокси в виде "ip:host@usrname:pswrd" и возвращает структуру Proxy

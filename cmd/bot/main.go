@@ -89,23 +89,23 @@ func main() {
 		log.Fatalln("Make preparation error:", err)
 	}
 
-	err = services.Chat.ClientInitWithProxy(config.ProxyForeign)
+	err = services.Chat.ClientInitWithProxy(proxiesManager.ProxyForeign)
 	if err != nil {
 		log.Fatalln("Chat client init error:", err)
 	}
 	log.Println("Chat API client initialized")
 
-	err = services.Image.ClientInitWithProxy(proxiesManager.Current())
+	err = services.Image.ClientInitWithProxy(proxiesManager.CurrentRU())
 	if err != nil {
 		log.Fatalln("Image client init error:", err)
 	}
 	log.Println("Image API client initialized")
 
-	err = workers.ConnectGeneratedProxy(services.Selenium, proxiesManager.Current())
+	err = workers.ConnectGeneratedProxy(services.Selenium, proxiesManager.CurrentRU())
 	if err != nil {
 		log.Fatalln("Web driver connection error:", err)
 	}
-	log.Println("Web driver connected with proxy:", proxiesManager.Current().Host)
+	log.Println("Web driver connected with proxy:", proxiesManager.CurrentRU().Host)
 	defer services.Quit()
 	defer workers.SaveCookies()
 

@@ -20,10 +20,17 @@ func NewChatService(token string) *ChatService {
 	return &ChatService{token: token}
 }
 
+// ClientInitWithProxy инициализация клиента с прокси.
+// параметр proxy может быть пустой структурой, тогда клиент будет инициализирован без прокси.
 func (s *ChatService) ClientInitWithProxy(proxy cfg.Proxy) error {
-	transport, err := pkgService.ProxyTransport(proxy.URL())
-	if err != nil {
-		return fmt.Errorf("failed to create proxy transport: %w", err)
+	var err error
+	transport := http.DefaultTransport
+
+	if proxy.IsEmpty() {
+		transport, err = pkgService.ProxyTransport(proxy.URL())
+		if err != nil {
+			return fmt.Errorf("failed to create proxy transport: %w", err)
+		}
 	}
 
 	client := &http.Client{
