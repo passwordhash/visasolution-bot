@@ -26,7 +26,7 @@ func (s *ChatService) ClientInitWithProxy(proxy cfg.Proxy) error {
 	var err error
 	transport := http.DefaultTransport
 
-	if proxy.IsEmpty() {
+	if !proxy.IsEmpty() {
 		transport, err = pkgService.ProxyTransport(proxy.URL())
 		if err != nil {
 			return fmt.Errorf("failed to create proxy transport: %w", err)
