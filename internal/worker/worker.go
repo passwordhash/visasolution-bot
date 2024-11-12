@@ -38,7 +38,7 @@ type Deps struct {
 	CookieFile     string
 	ScreenshotFile string
 
-	NotifiedEmail   string
+	NotifiedEmails  []string
 	CaptchaMaxTries int
 }
 
@@ -134,15 +134,11 @@ func (w *Worker) Run() error {
 		return fmt.Errorf("second captcha error:%w", err)
 	}
 
-	// Book new appointment
 	err = w.services.Selenium.BookNewAppointment()
 	if err != nil {
 		return fmt.Errorf("book new appointment error:%w", err)
 	}
 	log.Println("Book new appointment submit successfully")
-
-	// DEBUG:
-	//time.Sleep(time.Second * 4)
 
 	isAppointmentAvailable, err := w.services.Selenium.CheckAvailability()
 	if err != nil {
@@ -162,11 +158,8 @@ func (w *Worker) Run() error {
 	}
 
 	// TEMP: в качестве проверки правильности определния мест для записи, в любом случае отправляется письм
-	err = w.services.Email.SendAvailbilityNotification(w.d.NotifiedEmail)
-	if err != nil {
-		return fmt.Errorf("send availability notification error:%w", err)
-	}
-	log.Println("Availability notification sent to ", w.d.NotifiedEmail)
+	sent, err := w.services.Email.SendBulkNotification(w.d.NotifiedEmails)
+	w.handleEmailsSent(sent, err)
 
 	log.Println("Work done")
 
@@ -291,6 +284,18 @@ func (w *Worker) savePageScreenshot() error {
 
 func (w *Worker) cookieFilePath() string {
 	return w.d.TmpFolder + w.d.CookieFile
+}
+
+func (w *Worker) handleEmailsSent(sent []string, err error) {
+	var sendErr service.SendEmailsError
+	if errors.Is(err, service.SendEmailsError{}) {
+		log.Println(sendErr)
+	}
+	if err != nil {
+		log.Println("Error sending email:", err)
+	}
+
+	log.Println("Emails sent:", sent)
 }
 
 // LoadProxies загружает прокси из файла

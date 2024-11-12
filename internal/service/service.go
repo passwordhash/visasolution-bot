@@ -58,7 +58,7 @@ type Image interface {
 }
 
 type Email interface {
-	SendAvailbilityNotification(to string) error
+	SendBulkNotification(to []string) ([]string, error)
 }
 
 type Service struct {
