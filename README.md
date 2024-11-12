@@ -58,9 +58,8 @@ $ vim .env
 | `SMTP_...`           | Данные для подключения к SMTP-серверу.                                                               |
 | `BLS_...`            | Данные для авторизации на сайте BLS.                                                                 |
 | `IMGUR_...`          | Секреты для работы с API сервиса [Imgur](https://apidocs.imgur.com/).                                |
-| `PROXY_ROW_FOREIGN`  | Прокси для работы с иностранными сайтами (например, ChatGPT). Пример: `host:port@username:password`. |
 
-:exclamation: Также необходимо добавить хотябы 1 российский прокси в файл `proxies.json` на основе `proxies.json.example`.
+:exclamation: Также необходимо добавить **хотябы один** российский прокси и **один** иностранный прокси (для работы ChatGPT Api) в файл `proxies.json` на основе `proxies.json.example`.
 
 ```bash
 $ cp proxies.json.example proxies.json

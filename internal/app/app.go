@@ -67,7 +67,7 @@ func handleRunError(err error, deps MainLoopDeps) bool {
 			return false
 		}
 
-		log.Println("Web driver reconnected with the same proxy:", deps.ProxiesManager.Current().Host)
+		log.Println("Web driver reconnected with the same proxy:", deps.ProxiesManager.CurrentRU().Host)
 		return true
 	}
 
@@ -81,7 +81,7 @@ func handleRunError(err error, deps MainLoopDeps) bool {
 			log.Println("Web driver quit error:", err)
 		}
 
-		newProxie := deps.ProxiesManager.Next()
+		newProxie := deps.ProxiesManager.NextRU()
 		err = deps.Workers.ConnectGeneratedProxy(deps.Services.Selenium, newProxie)
 		if err != nil {
 			log.Println("Web driver reconnect error:", err)

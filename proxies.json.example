@@ -1,5 +1,6 @@
 {
     "russian_proxies": [
         "host:port@login:password"
-    ]
+    ],
+    "foreign_proxy": "host:port@login:password"
 }

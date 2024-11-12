@@ -15,8 +15,7 @@ type Config struct {
 	BlsPassword string
 	SeleniumUrl string
 
-	ChatApiKey   string
-	ProxyForeign Proxy
+	ChatApiKey string
 
 	ImgurClientId     string
 	ImgurClientSecret string
@@ -45,12 +44,6 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse smtp port: %w", err)
 	}
 
-	proxyRowForeign := os.Getenv("PROXY_ROW_FOREIGN")
-	proxyForeign, err := ParseProxy(proxyRowForeign)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse foregin proxy row: %w", err)
-	}
-
 	return &Config{
 		NotifiedEmail:     os.Getenv("NOTIFIED_EMAIL"),
 		MainLoopIntervalM: mainLoopIntervalM,
@@ -58,7 +51,6 @@ func LoadConfig() (*Config, error) {
 		BlsEmail:          os.Getenv("BLS_EMAIL"),
 		BlsPassword:       os.Getenv("BLS_PASSWORD"),
 		ChatApiKey:        os.Getenv("CHAT_API_KEY"),
-		ProxyForeign:      proxyForeign,
 		ImgurClientId:     os.Getenv("IMGUR_CLIENT_ID"),
 		ImgurClientSecret: os.Getenv("IMGUR_CLIENT_SECRET"),
 		SmtpHost:          os.Getenv("SMTP_HOST"),
