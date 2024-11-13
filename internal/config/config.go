@@ -5,10 +5,11 @@ import (
 	"github.com/joho/godotenv"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
-	NotifiedEmail     string
+	NotifiedEmails    []string
 	MainLoopIntervalM int
 
 	BlsEmail    string
@@ -34,6 +35,11 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	notifiedEmails := os.Getenv("NOTIFIED_EMAILS")
+	if notifiedEmails == "" {
+		return nil, fmt.Errorf(".env NOTIFIED_EMAILS is required")
+	}
+
 	mainLoopIntervalM, err := strconv.Atoi(os.Getenv("MAIN_LOOP_INTERVAL_M"))
 	if err != nil || mainLoopIntervalM <= 0 {
 		mainLoopIntervalM = defaultMainLoopIntervalM
@@ -45,7 +51,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		NotifiedEmail:     os.Getenv("NOTIFIED_EMAIL"),
+		NotifiedEmails:    strings.Split(notifiedEmails, ";"),
 		MainLoopIntervalM: mainLoopIntervalM,
 		SeleniumUrl:       os.Getenv("SELENIUM_URL"),
 		BlsEmail:          os.Getenv("BLS_EMAIL"),

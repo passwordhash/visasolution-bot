@@ -79,7 +79,7 @@ func main() {
 		VisaTypeURL:     visaTypeVerificationURL,
 		TmpFolder:       tmpFolder,
 		CookieFile:      cookieFilename,
-		NotifiedEmail:   config.NotifiedEmail,
+		NotifiedEmails:  config.NotifiedEmails,
 		CaptchaMaxTries: processCaptchaMaxTries,
 		ScreenshotFile:  screenshotFilename,
 	})
