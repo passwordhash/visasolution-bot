@@ -7,6 +7,7 @@ import (
 	"github.com/tebeka/selenium"
 	"log"
 	"os"
+	"time"
 	cfg "visasolution/internal/config"
 	"visasolution/internal/service"
 	"visasolution/pkg/util"
@@ -190,12 +191,14 @@ func (w *Worker) handleAuthorization() error {
 
 	log.Println("Authorization successfully ended")
 
+	time.Sleep(time.Second * 1)
+
+	w.SaveCookies()
+
 	err = w.services.Selenium.GoTo(w.d.BaseURL + w.d.VisaTypeURL)
 	if err != nil {
 		return err
 	}
-
-	w.SaveCookies()
 
 	return nil
 }

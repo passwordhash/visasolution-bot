@@ -35,21 +35,39 @@ const (
 	bookNewBtnXPath = `//*[@id="tns1-item1"]/div/div/div/div/a`
 )
 
+// Сообщения, которые могут появиться на странице
 const (
 	availabilityCheckMsg = "No Appointments Available"
 	invalidSelectionMsg  = "Invalid selection"
 )
 
+// Тип для действия с элементом
+type actionElement func(selenium.WebElement) error
+
 // SeleniumLegacyCode тип для легаси кодов ошибок Selenium WebDriver
 type SeleniumLegacyCode int
+
+type waitOptions struct {
+	maxTries int
+	interval time.Duration
+}
+
+var defaultWaitOpts = waitOptions{
+	maxTries: 20,
+	interval: time.Second * 2,
+}
 
 const (
 	invalidSessionId = iota
 )
 
-var InvalidSelectionError = errors.New("captcha invalid selection")
+// Ошибки
+var (
+	InvalidSelectionError = errors.New("captcha invalid selection")
+	InvalidSessionError   = errors.New("invalid session id")
 
-var InvalidSessionError = errors.New("invalid session id")
+	WaitElementError = errors.New("get element max tries exceeded")
+)
 
 // Количество табов до первого input'а в форме Book New Appointment
 const tabsCountToFirstInput = 14
@@ -207,7 +225,7 @@ func (s *SeleniumService) PullCaptchaImage() ([]byte, error) {
 	// чтобы на скрине было видно содержимое капчи
 	var err error
 
-	iframe, err := s.waitAndSwitchIFrame(selenium.ByXPATH, captchaIFrameXPath)
+	iframe, err := s.waitAndSwitchIFrame(selenium.ByXPATH, captchaIFrameXPath, defaultWaitOpts)
 	if err != nil {
 		return []byte{}, fmt.Errorf("switch iframe error:%w", err)
 	}
@@ -246,7 +264,7 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 		return fmt.Errorf("change element property error:%w", err)
 	}
 
-	_, err = s.waitAndSwitchIFrame(selenium.ByXPATH, captchaIFrameXPath)
+	_, err = s.waitAndSwitchIFrame(selenium.ByXPATH, captchaIFrameXPath, defaultWaitOpts)
 	if err != nil {
 		return fmt.Errorf("switch iframe error:%w", err)
 	}
@@ -278,7 +296,7 @@ func (s *SeleniumService) SolveCaptcha(numbers []int) error {
 
 	time.Sleep(time.Second * 2)
 
-	if err := s.waitAndClickButton(selenium.ByXPATH, submitCaptchaXPath); err != nil {
+	if err := s.waitAndClickButton(selenium.ByXPATH, submitCaptchaXPath, defaultWaitOpts); err != nil {
 		return fmt.Errorf("click submit captcha error:%w", err)
 	}
 	log.Println("submit captcha")
@@ -319,7 +337,7 @@ func (s *SeleniumService) Authorize() error {
 		return err
 	}
 
-	err = s.waitAndClickButton(selenium.ByID, formSubmitId)
+	err = s.waitAndClickButton(selenium.ByID, formSubmitId, defaultWaitOpts)
 	if err != nil {
 		return fmt.Errorf("submit click error:%w", err)
 	}
@@ -329,7 +347,7 @@ func (s *SeleniumService) Authorize() error {
 
 // BookNew кликает по кнопке "Book new" на странице. Синхронный метод.
 func (s *SeleniumService) BookNew() error {
-	err := s.waitAndClickButton(selenium.ByXPATH, bookNewBtnXPath)
+	err := s.waitAndClickButton(selenium.ByXPATH, bookNewBtnXPath, defaultWaitOpts)
 	if err != nil {
 		return fmt.Errorf("click book new btn error:%w", err)
 	}
@@ -339,16 +357,18 @@ func (s *SeleniumService) BookNew() error {
 
 // BookNewAppointment заполняет форму "Book New Appointment" и отправляет ее
 func (s *SeleniumService) BookNewAppointment() error {
-	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentId); err != nil {
+	err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentId, defaultWaitOpts)
+	if err != nil {
 		return fmt.Errorf("submit to book new appointment error: %w", err)
 	}
 
-	if _, err := s.waitAndFind(selenium.ByXPATH, bookNewFormXPath); err != nil {
+	_, err = s.waitAndFind(selenium.ByXPATH, bookNewFormXPath, defaultWaitOpts)
+	if err != nil {
 		return fmt.Errorf("find 'book new' form error: %w", err)
 	}
 
 	// TODO: сделать ожидание появления элементов формы
-	time.Sleep(time.Second * 3)
+	//time.Sleep(time.Second * 3)
 
 	formControlsDisplayed, err := s.getDisplayedFormControls()
 	if err != nil {
@@ -388,7 +408,7 @@ func (s *SeleniumService) BookNewAppointment() error {
 		}
 	}
 
-	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentSubmitId); err != nil {
+	if err := s.waitAndClickButton(selenium.ByID, bookNewAppointmentSubmitId, defaultWaitOpts); err != nil {
 		return fmt.Errorf("submit book new appointment form error: %w", err)
 	}
 
@@ -397,7 +417,7 @@ func (s *SeleniumService) BookNewAppointment() error {
 
 // CheckAvailability проверяет доступность регистрации на получение визы
 func (s *SeleniumService) CheckAvailability() (bool, error) {
-	commonModal, err := s.waitAndFind(selenium.ByID, commonModalId)
+	commonModal, err := s.waitAndFind(selenium.ByID, commonModalId, defaultWaitOpts)
 	if err != nil {
 		return false, fmt.Errorf("find common modal error: %w", err)
 	}
@@ -424,77 +444,77 @@ func (s *SeleniumService) CheckAvailability() (bool, error) {
 
 // ClickVerifyBtn кликает по кнопке с ожиданием появления элемента. Синхронный метод.
 func (s *SeleniumService) ClickVerifyBtn() error {
-	return s.waitAndClickButton(selenium.ByCSSSelector, verifyBtnIdCSSSelector)
+	return s.waitAndClickButton(selenium.ByCSSSelector, verifyBtnIdCSSSelector, defaultWaitOpts)
 }
 
-// clickButton кликает по элементу по заданным параметрам
-func (s *SeleniumService) clickButton(byWhat, value string) error {
-	elem, err := s.wd.FindElement(byWhat, value)
-	if err != nil {
-		return err
+// Ожидает появления элемента и возвращает все найденные элементы
+func (s *SeleniumService) waitAndFindAll(byWhat, value string, opts waitOptions) ([]selenium.WebElement, error) {
+	var elements []selenium.WebElement
+	var err error
+
+	for i := 0; i < opts.maxTries; i++ {
+		elements, err = s.wd.FindElements(byWhat, value)
+		if err == nil {
+			return elements, nil
+		}
+		fmt.Println("try:", i, "error:", err)
+		time.Sleep(opts.interval)
 	}
 
-	return elem.Click()
+	return nil, fmt.Errorf("max tries exceeded:%w", err)
 }
 
-// TODO: refactor all wait funcs
-
-// waitAndFind ожидает появления элемента и возвращает его
-func (s *SeleniumService) waitAndFind(byWhat, value string) (selenium.WebElement, error) {
+// Ожидает появления элемента и выполняет действие с ним
+func (s *SeleniumService) waitAndDo(byWhat, value string, action actionElement, opts waitOptions) error {
 	var element selenium.WebElement
 	var err error
-	maxTries := 10                  // HARD CODED
-	delay := time.Millisecond * 500 // HARD CODED
 
-	for i := 0; i < maxTries; i++ {
+	for i := 0; i < opts.maxTries; i++ {
 		element, err = s.wd.FindElement(byWhat, value)
 		if err == nil {
-			return element, nil
+			if err = action(element); err == nil {
+				return nil
+			}
 		}
-		time.Sleep(delay)
+		time.Sleep(opts.interval)
 	}
 
-	return nil, fmt.Errorf("element not found after multiple attempts: %w", err)
-}
-
-// waitAndClickButton ожидает появления элемента и кликает по нему
-func (s *SeleniumService) waitAndClickButton(byWhat, value string) error {
-	var err error
-	maxTries := s.maxTries          // HARD CODED
-	delay := time.Millisecond * 500 // HARD CODED
-	for i := 0; i < maxTries; i++ {
-		err = s.clickButton(byWhat, value)
-		if err == nil {
-			return nil
-		}
-		time.Sleep(delay)
-	}
 	return fmt.Errorf("max tries exceeded:%w", err)
 }
 
-// waitAndSwitchIFrame ожидает появления IFrame'а и переключается на него
-func (s *SeleniumService) waitAndSwitchIFrame(byWhat, value string) (selenium.WebElement, error) {
-	var iframe selenium.WebElement
-	var err error
-	maxTries := 10 // HARD CODED
-	//delay := time.Millisecond * 500 // HARD CODED
-	delay := time.Second * 2
+// Ожидает появления элемента и возвращает его
+func (s *SeleniumService) waitAndFind(byWhat, value string, opts waitOptions) (selenium.WebElement, error) {
+	var element selenium.WebElement
 
-	for i := 0; i < maxTries; i++ {
-		iframe, err = s.wd.FindElement(byWhat, value)
-		if err == nil {
-			err = s.wd.SwitchFrame(iframe)
-			if err == nil {
-				return iframe, nil
-			}
-		}
-		time.Sleep(delay)
-	}
+	err := s.waitAndDo(byWhat, value, func(el selenium.WebElement) error {
+		element = el
+		return nil
+	}, opts)
 
-	return nil, fmt.Errorf("element not found after multiple attempts: %w", err)
+	return element, err
 }
 
-// switchToDefault переключается на дефолтный фрейм (основной html документ)
+// Ожидает появления элемента и кликает по нему
+func (s *SeleniumService) waitAndClickButton(byWhat, value string, opts waitOptions) error {
+	err := s.waitAndDo(byWhat, value, func(el selenium.WebElement) error {
+		return el.Click()
+	}, opts)
+
+	return err
+}
+
+// Ожидает появления элемента и переключается на него
+func (s *SeleniumService) waitAndSwitchIFrame(byWhat, value string, opts waitOptions) (selenium.WebElement, error) {
+	var iframe selenium.WebElement
+	err := s.waitAndDo(byWhat, value, func(el selenium.WebElement) error {
+		iframe = el
+		return s.wd.SwitchFrame(iframe)
+	}, opts)
+
+	return iframe, err
+}
+
+// Переключается на дефолтный фрейм (основной html документ)
 func (s *SeleniumService) switchToDefault() error {
 	return s.wd.SwitchFrame(nil)
 }
@@ -563,7 +583,7 @@ func (s *SeleniumService) keyDownFor(times int, key string) error {
 // getDisplayedFormControls возвращает только отображаемые элементы формы.
 // Только для страницы Book New Appointment (форма для проверки доступности записи)
 func (s *SeleniumService) getDisplayedFormControls() ([]selenium.WebElement, error) {
-	formControls, err := s.wd.FindElements(selenium.ByXPATH, bookNewFormControlsXPath)
+	formControls, err := s.waitAndFindAll(selenium.ByXPATH, bookNewFormControlsXPath, defaultWaitOpts)
 	if err != nil {
 		return nil, fmt.Errorf("find 'book new' form controls error: %w", err)
 	}
