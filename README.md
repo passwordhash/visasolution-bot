@@ -4,7 +4,7 @@
 
 <hr/>
 
-[![Click to Watch](https://img.shields.io/badge/CLICK%20TO%20WATCH%20DEMO-%2300b8d9?style=for-the-badge&logo=youtube&logoColor=white)](https://disk.yandex.ru/i/FLKs0EnQxxcl6A)
+[![Click to Watch](https://img.shields.io/badge/CLICK%20TO%20WATCH%20DEMO-%23FFA500?style=for-the-badge&logo=youtube&logoColor=white)](https://disk.yandex.ru/i/FLKs0EnQxxcl6A)
 ![Golang](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Selenium](https://img.shields.io/badge/Selenium-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
